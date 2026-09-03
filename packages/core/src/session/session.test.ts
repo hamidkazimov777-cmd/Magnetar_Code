@@ -50,7 +50,7 @@ describe("Session", () => {
     expect(reopened?.history()).toHaveLength(1);
   });
 
-  it("lists newest first and keeps projects apart", async () => {
+  it("lists newest first even when two sessions land in the same millisecond", async () => {
     const a = await Session.create(cwd, undefined, env);
     await a.append({ role: "user", content: "first" });
     const b = await Session.create(cwd, undefined, env);

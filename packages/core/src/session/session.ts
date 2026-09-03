@@ -17,6 +17,16 @@ export interface SessionMeta {
 type Entry =
   { kind: "meta"; meta: SessionMeta } | { kind: "message"; message: Message; at: number };
 
+/** Timestamps must be strictly increasing within a process: two sessions
+ *  created in the same millisecond otherwise tie, and `list()` returns them in
+ *  an arbitrary order. A fast CI runner hits this; a laptop rarely does. */
+let lastStamp = 0;
+function stamp(): number {
+  const now = Date.now();
+  lastStamp = now > lastStamp ? now : lastStamp + 1;
+  return lastStamp;
+}
+
 /** Append-only JSONL, flushed on every turn. The prototype rewrote a whole
  *  JSON file only at certain points, so a crash mid-task lost the task. */
 export class Session {
@@ -35,7 +45,7 @@ export class Session {
     const dir = projectSessionsDir(cwd, env);
     await fs.mkdir(dir, { recursive: true, mode: 0o700 });
     const id = Session.newId();
-    const now = Date.now();
+    const now = stamp();
     const meta: SessionMeta = {
       id,
       title: "New session",
@@ -83,7 +93,9 @@ export class Session {
       const session = await Session.open(cwd, name.slice(0, -".jsonl".length), env);
       if (session) metas.push(session.meta);
     }
-    return metas.sort((a, b) => b.updatedAt - a.updatedAt);
+    // Ties fall back to creation order so the list never shuffles between
+    // calls, whatever the clock resolution.
+    return metas.sort((a, b) => b.updatedAt - a.updatedAt || b.createdAt - a.createdAt);
   }
 
   history(): readonly Message[] {
@@ -93,13 +105,13 @@ export class Session {
   async append(message: Message): Promise<void> {
     this.messages.push(message);
     this.meta.messageCount = this.messages.length;
-    this.meta.updatedAt = Date.now();
+    this.meta.updatedAt = stamp();
     // The first user turn names the session, so `/sessions` reads like a list
     // of tasks instead of a list of timestamps.
     if (this.meta.title === "New session" && message.role === "user" && message.content) {
       this.meta.title = titleFrom(message.content);
     }
-    await this.write({ kind: "message", message, at: Date.now() });
+    await this.write({ kind: "message", message, at: stamp() });
     await this.writeMeta();
   }
 
@@ -108,10 +120,10 @@ export class Session {
     this.messages.length = 0;
     this.messages.push(...messages);
     this.meta.messageCount = messages.length;
-    this.meta.updatedAt = Date.now();
+    this.meta.updatedAt = stamp();
     const lines = [
       JSON.stringify({ kind: "meta", meta: this.meta }),
-      ...messages.map((message) => JSON.stringify({ kind: "message", message, at: Date.now() })),
+      ...messages.map((message) => JSON.stringify({ kind: "message", message, at: stamp() })),
     ];
     await fs.writeFile(this.file, `${lines.join("\n")}\n`, "utf8");
   }
