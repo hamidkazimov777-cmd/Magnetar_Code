@@ -1,7 +1,7 @@
 {
   "name": "magnetar-code",
   "version": "0.1.0",
-  "description": "Magnetar Code — a terminal AI coding agent with a local web monitor. Bring your own key: any OpenAI-compatible endpoint.",
+  "description": "Magnetar Code \u2014 a terminal AI coding agent with a local web monitor. Bring your own key: any OpenAI-compatible endpoint.",
   "keywords": [
     "ai",
     "agent",
@@ -38,10 +38,10 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && node scripts/bundle-monitor.mjs",
     "dev": "tsx src/cli.tsx",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build -w @magnetar/web && npm run build"
   },
   "dependencies": {
     "chalk": "^5.6.2",

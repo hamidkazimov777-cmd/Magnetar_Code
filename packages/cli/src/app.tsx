@@ -84,7 +84,10 @@ export function App({
     setItems((current) => [...current, { ...item, id: id() }]);
   }, []);
 
-  const palette = draft.startsWith("/") && overlay.kind === "none" ? filterCommands(draft) : [];
+  const palette = React.useMemo(
+    () => (draft.startsWith("/") && overlay.kind === "none" ? filterCommands(draft) : []),
+    [draft, overlay.kind],
+  );
 
   /* ---------------------------------------------------------------- agent */
 

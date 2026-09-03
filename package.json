@@ -2,7 +2,7 @@
   "name": "magnetar-code-monorepo",
   "private": true,
   "version": "0.0.0",
-  "description": "Magnetar Code — terminal AI coding agent with a local web monitor",
+  "description": "Magnetar Code \u2014 terminal AI coding agent with a local web monitor",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -12,19 +12,21 @@
     "packages/*"
   ],
   "scripts": {
-    "lint": "eslint .",
+    "lint": "eslint packages",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "vitest run",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "cli": "node packages/cli/index.js",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test"
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test",
+    "build": "npm run build -w @magnetar/web && npm run build -w magnetar-code"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.2.0",
     "eslint": "^10.9.1",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.12.0",
     "prettier": "^3.9.6",
     "typescript": "~5.8.3",
