@@ -67,7 +67,7 @@ export function ChatContainer() {
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center space-y-6">
             <div className="flex flex-col items-center">
-              <img src="/logo.png" alt="Magnetar Logo" className="w-32 h-32 mb-4 opacity-80" />
+              <img src="/logo.png" alt="Magnetar Logo" className="w-32 h-32 mb-4" />
               <h2 className="text-3xl font-bold tracking-widest text-foreground/80">MAGNETAR</h2>
             </div>
             <p className="text-muted-foreground text-sm">
