@@ -57,3 +57,13 @@ export {
   COMPACT_THRESHOLD_TOKENS,
 } from "./agent/compact.js";
 export { estimateCost, estimateTokens, formatCost, priceFor } from "./agent/cost.js";
+
+export { startDaemon, type Daemon, type DaemonDeps } from "./server/server.js";
+export type {
+  ApproveRequestBody,
+  ChatRequestBody,
+  FileEntry,
+  SessionResponse,
+  StateResponse,
+  StreamMessage,
+} from "./server/protocol.js";

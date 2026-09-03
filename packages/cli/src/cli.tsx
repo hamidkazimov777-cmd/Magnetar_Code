@@ -31,7 +31,7 @@ async function main(): Promise<number> {
     await waitUntilExit();
     return 0;
   }
-  if (args.command === "web") return runWeb();
+  if (args.command === "web") return await runWeb(args, version);
 
   const piped = await readStdin();
   const prompt = [args.print, args.initialMessage, piped].filter(Boolean).join("\n\n");

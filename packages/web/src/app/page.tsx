@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ChatContainer } from "@/components/chat/ChatContainer";
 import { ProviderSettings } from "@/components/providers/ProviderSettings";
 import { Plus, Search, Folder, Settings, User, PanelLeftClose, PanelLeftOpen } from "lucide-react";
@@ -9,11 +9,7 @@ import { useChatStore } from "@/store/chat-store";
 import { useProviderStore } from "@/store/provider-store";
 
 export default function Home() {
-  const { providers, activeProviderId, syncWithLocalCLI } = useProviderStore();
-
-  useEffect(() => {
-    syncWithLocalCLI();
-  }, [syncWithLocalCLI]);
+  const { providers } = useProviderStore();
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(providers.length === 0);
