@@ -7,6 +7,8 @@ import { Session } from "../session/session.js";
 import { Permissions, type Approval } from "../permissions/permissions.js";
 import { OpenAICompatibleProvider } from "../providers/openai.js";
 import { resolveInRoot, isIgnoredDir } from "../tools/sandbox.js";
+import { factsDir, globalMemoryFile, readMemory, writeMemory } from "../memory/memory.js";
+import { projectMemoryFile } from "../paths.js";
 import { MAX_FILE_BYTES, looksBinary } from "../tools/text.js";
 import type { PermissionMode } from "../config/types.js";
 import type { Tool } from "../tools/types.js";
@@ -148,6 +150,16 @@ export async function startDaemon(deps: DaemonDeps): Promise<Daemon> {
         if (id) session = target;
         const body: SessionResponse = { meta: target.meta, messages: [...target.history()] };
         return json(res, 200, body);
+      }
+
+      case "GET /api/memory":
+        return json(res, 200, await readMemory(deps.cwd));
+
+      case "POST /api/memory": {
+        const body = await readJson<{ file: string; content: string }>(req);
+        if (!memoryWritable(body.file)) return json(res, 403, { error: "Not a memory file" });
+        await writeMemory(body.file, body.content ?? "");
+        return json(res, 200, await readMemory(deps.cwd));
       }
 
       case "GET /api/files":
@@ -300,6 +312,17 @@ export async function startDaemon(deps: DaemonDeps): Promise<Daemon> {
       todos: deps.todos.list(),
       busy,
     };
+  }
+
+  /** Only the three places memory lives. Everything else is a plain file and
+   *  belongs to the agent's own tools, which have their own approval path. */
+  function memoryWritable(file: string): boolean {
+    if (typeof file !== "string" || !file) return false;
+    const target = path.resolve(file);
+    if (target === globalMemoryFile()) return true;
+    if (target === projectMemoryFile(deps.cwd)) return true;
+    const facts = factsDir(deps.cwd);
+    return target.startsWith(`${facts}${path.sep}`) && target.endsWith(".md");
   }
 
   async function listFiles(relative: string): Promise<FileEntry[]> {

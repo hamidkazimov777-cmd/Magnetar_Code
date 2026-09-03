@@ -58,6 +58,19 @@ export {
 } from "./agent/compact.js";
 export { estimateCost, estimateTokens, formatCost, priceFor } from "./agent/cost.js";
 
+export {
+  readMemory,
+  memoryPrompt,
+  writeMemory,
+  saveFact,
+  deleteFact,
+  factsDir,
+  globalMemoryFile,
+  type Fact,
+  type MemoryFile,
+  type MemoryScope,
+} from "./memory/memory.js";
+
 export { startDaemon, type Daemon, type DaemonDeps } from "./server/server.js";
 export type {
   ApproveRequestBody,

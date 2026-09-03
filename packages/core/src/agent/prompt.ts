@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { magnetarHome, projectMemoryFile } from "../paths.js";
+import { memoryPrompt } from "../memory/memory.js";
 import { runCommand } from "../tools/shell.js";
 
 export interface PromptContext {
@@ -16,7 +16,7 @@ export async function buildSystemPrompt(ctx: PromptContext): Promise<string> {
   const [tree, git, memory] = await Promise.all([
     topLevelListing(ctx.cwd),
     gitSummary(ctx.cwd),
-    loadMemory(ctx.cwd),
+    memoryPrompt(ctx.cwd),
   ]);
 
   const sections = [
@@ -75,14 +75,4 @@ async function gitSummary(cwd: string): Promise<string> {
   const status = await runCommand("git status --porcelain 2>/dev/null | head -20", { cwd }, 5000);
   const changed = status.output.trim();
   return `Branch: ${branch}${changed && changed !== "(no output)" ? `\nUncommitted changes:\n${changed}` : "\nWorking tree clean"}`;
-}
-
-/** Global preferences first, then the project's own file — the project wins
- *  because it is more specific. */
-async function loadMemory(cwd: string): Promise<string> {
-  const global = await fs
-    .readFile(path.join(magnetarHome(), "MAGNETAR.md"), "utf8")
-    .catch(() => "");
-  const project = await fs.readFile(projectMemoryFile(cwd), "utf8").catch(() => "");
-  return [global.trim(), project.trim()].filter(Boolean).join("\n\n---\n\n").slice(0, 32_000);
 }

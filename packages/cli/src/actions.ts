@@ -4,7 +4,7 @@ import {
   COMPACT_THRESHOLD_TOKENS,
   compact,
   formatCost,
-  projectMemoryFile,
+  readMemory,
   runCommand,
   transcriptTokens,
   type Message,
@@ -53,10 +53,18 @@ export function contextText(runtime: Runtime): string {
 }
 
 export async function memoryText(cwd: string): Promise<string> {
-  const file = projectMemoryFile(cwd);
-  const content = await fs.readFile(file, "utf8").catch(() => null);
-  if (content === null) return `No MAGNETAR.md in this project. Run /init to write one.`;
-  return `${file}\n\n${content.trim()}`;
+  const files = await readMemory(cwd);
+  if (files.length === 0) {
+    return "No memory for this project yet. Run /init to write a MAGNETAR.md.";
+  }
+  return files
+    .map((file) => `${file.name}  ${dim(file.file)}\n${file.content.trim()}`)
+    .join("\n\n");
+}
+
+function dim(text: string): string {
+  const home = process.env.HOME ?? "";
+  return home && text.startsWith(home) ? `~${text.slice(home.length)}` : text;
 }
 
 export async function attachFile(cwd: string, relative: string): Promise<Message> {
