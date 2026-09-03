@@ -23,3 +23,6 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run test
+      # The published package bundles the monitor; a broken web build must
+      # fail here rather than at release time.
+      - run: npm run build

@@ -33,6 +33,17 @@ magnetar -p "add a health check" --permission-mode auto-edit --output-format jso
 `--output-format json` prints the answer, the session id, the steps taken, token
 usage and cost as one JSON object — for scripts and CI.
 
+## The monitor
+
+```bash
+magnetar web
+```
+
+Opens a local browser view of the same session: the live stream, every tool
+call with its diff, the file tree with changed files marked, the plan, and
+project memory. It talks to a loopback daemon that holds the key — nothing
+reaches the browser but the text.
+
 ## In the session
 
 Type `/` for the command palette: `/model`, `/sessions`, `/cost`, `/context`,
