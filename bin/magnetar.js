@@ -5,7 +5,8 @@ const { spawn } = require('child_process');
 const path = require('path');
 
 const args = process.argv.slice(2);
-const command = args[0];
+const scriptName = path.basename(process.argv[1]);
+const command = args[0] || (scriptName === 'magnetarweb' || scriptName === 'magnetar-web' ? 'web' : '');
 
 if (command === 'web') {
   console.log('\n🚀 Инициализация Magnetar Web UI...\n');
@@ -16,7 +17,8 @@ if (command === 'web') {
   // Запускаем Next.js (сейчас dev, для продакшена будет start)
   const child = spawn(nextCmd, ['run', 'dev'], {
     cwd: projectRoot,
-    stdio: ['ignore', 'pipe', 'pipe']
+    stdio: ['ignore', 'pipe', 'pipe'],
+    shell: true
   });
   
   let browserOpened = false;

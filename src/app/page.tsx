@@ -13,9 +13,11 @@ import {
   PanelLeftOpen 
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { useChatStore } from "@/store/chat-store";
 
 export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { clearChat } = useChatStore();
 
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden text-sm">
@@ -36,7 +38,7 @@ export default function Home() {
         </div>
 
         <div className="px-4 py-2 space-y-1">
-          <button className="flex items-center gap-2 w-full px-2 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-md text-left">
+          <button onClick={clearChat} className="flex items-center gap-2 w-full px-2 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-md text-left">
             <Plus size={16} />
             <span>New Session</span>
           </button>
@@ -67,11 +69,9 @@ export default function Home() {
 
         <div className="p-4 border-t space-y-1">
           <Dialog>
-            <DialogTrigger asChild>
-              <button className="flex items-center gap-2 w-full px-2 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-md text-left text-muted-foreground">
-                <Settings size={16} />
-                <span>Settings</span>
-              </button>
+            <DialogTrigger className="flex items-center gap-2 w-full px-2 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-md text-left text-muted-foreground">
+              <Settings size={16} />
+              <span>Settings</span>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
               <ProviderSettings />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useProviderStore } from "@/store/provider-store";
 import { ProviderConfig } from "@/core/providers/types";
 import { v4 as uuidv4 } from "uuid";
@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { OpenAICompatibleProvider } from "@/core/providers/OpenAICompatibleProvider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function ProviderSettings() {
   const { providers, addProvider, removeProvider, activeProviderId, setActiveProvider } = useProviderStore();
@@ -17,6 +19,48 @@ export function ProviderSettings() {
   const [apiKey, setApiKey] = useState("");
   const [defaultModel, setDefaultModel] = useState("gpt-4o-mini");
   
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [isFetchingModels, setIsFetchingModels] = useState(false);
+  const [fetchError, setFetchError] = useState("");
+
+  useEffect(() => {
+    const fetchProviderModels = async () => {
+      if (!baseUrl || !apiKey || baseUrl.trim() === "" || apiKey.trim() === "") {
+        setAvailableModels([]);
+        return;
+      }
+      
+      setIsFetchingModels(true);
+      setFetchError("");
+      
+      try {
+        const tempProvider = new OpenAICompatibleProvider({
+          id: "temp",
+          name: "temp",
+          baseUrl,
+          apiKey,
+          type: "openai-compatible"
+        });
+        const models = await tempProvider.fetchModels();
+        setAvailableModels(models.map(m => m.id));
+        if (models.length > 0 && !defaultModel) {
+          setDefaultModel(models[0].id);
+        }
+      } catch (err: any) {
+        setFetchError(err.message || "Failed to fetch models");
+        setAvailableModels([]);
+      } finally {
+        setIsFetchingModels(false);
+      }
+    };
+
+    const timeoutId = setTimeout(() => {
+      fetchProviderModels();
+    }, 1000); // debounce 1 second
+
+    return () => clearTimeout(timeoutId);
+  }, [baseUrl, apiKey]);
+
   const handleAdd = () => {
     if (!name || !baseUrl || !apiKey) return;
     
@@ -26,7 +70,7 @@ export function ProviderSettings() {
       baseUrl,
       apiKey,
       type: "custom",
-      defaultModel
+      defaultModel: defaultModel || (availableModels[0] ?? "gpt-3.5-turbo")
     };
     
     addProvider(newProvider);
@@ -58,7 +102,24 @@ export function ProviderSettings() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="model">Default Model</Label>
-            <Input id="model" placeholder="gpt-4o-mini" value={defaultModel} onChange={(e) => setDefaultModel(e.target.value)} />
+            {availableModels.length > 0 ? (
+              <Select value={defaultModel} onValueChange={setDefaultModel}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableModels.map(modelId => (
+                    <SelectItem key={modelId} value={modelId}>
+                      {modelId}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input id="model" placeholder="gpt-4o-mini" value={defaultModel} onChange={(e) => setDefaultModel(e.target.value)} />
+            )}
+            {isFetchingModels && <p className="text-xs text-muted-foreground">Fetching models...</p>}
+            {fetchError && <p className="text-xs text-destructive">{fetchError}</p>}
           </div>
         </CardContent>
         <CardFooter>

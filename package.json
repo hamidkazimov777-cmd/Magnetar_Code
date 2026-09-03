@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "bin": {
-    "magnetar": "./bin/magnetar.js"
+    "magnetar": "./bin/magnetar.js",
+    "magnetar-web": "./bin/magnetar.js",
+    "magnetarweb": "./bin/magnetar.js"
   },
   "scripts": {
     "dev": "next dev",

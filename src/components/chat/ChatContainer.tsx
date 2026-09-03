@@ -61,9 +61,31 @@ export function ChatContainer() {
   };
 
   return (
-    <div className="flex flex-col w-full h-full">
+    <div className="flex flex-col w-full h-full relative">
+      {/* Top Bar for Provider Selection */}
+      <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-10 bg-gradient-to-b from-background to-transparent pb-8">
+        <div className="flex items-center gap-2">
+          {providers.length > 0 ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Provider:</span>
+              <select 
+                className="bg-transparent text-sm font-medium focus:outline-none cursor-pointer p-1 rounded hover:bg-black/5 dark:hover:bg-white/5"
+                value={activeProviderId || ""}
+                onChange={(e) => useProviderStore.getState().setActiveProvider(e.target.value)}
+              >
+                {providers.map(p => (
+                  <option key={p.id} value={p.id}>{p.name} ({p.defaultModel})</option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <span className="text-xs text-muted-foreground">No providers configured</span>
+          )}
+        </div>
+      </div>
+
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto px-4 py-8">
+      <div className="flex-1 overflow-y-auto px-4 pt-16 pb-8">
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center space-y-6">
             <div className="flex flex-col items-center">
