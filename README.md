@@ -9,9 +9,8 @@ Bring your own key — любой OpenAI-совместимый эндпоинт
 
 ---
 
-> **Статус: ранняя разработка.** Фаза 0 (структура репозитория, тулинг, CI) завершена.
-> CLI пока работает в прототипном виде на `blessed`; ядро, демон и веб-монитор —
-> в работе. План: [`docs/PLAN.md`](docs/PLAN.md).
+> **Статус: ранняя разработка.** Готовы ядро и CLI (фазы 0–2 плана).
+> Веб-монитор и локальный демон — следующие. План: [`docs/PLAN.md`](docs/PLAN.md).
 
 ## Установка
 
@@ -32,8 +31,17 @@ npx magnetar-code
 magnetar provider
 ```
 
-Выбираешь пресет (OpenRouter, TokenRouter, Kimi, OpenAI, Together, LM Studio) —
-остаётся ввести только API-ключ. Список моделей подтягивается с эндпоинта автоматически.
+Выбираешь пресет (OpenRouter, TokenRouter, Kimi, OpenAI, DeepSeek, Together,
+LM Studio, Ollama) — остаётся ввести только API-ключ. Список моделей подтягивается
+с эндпоинта автоматически. Ключ уходит в системный keychain, а не в конфиг.
+
+## Неинтерактивный режим
+
+```bash
+magnetar -p "какие роуты есть в этом приложении?"
+cat error.log | magnetar -p "почему падает"
+magnetar -p "добавь health check" --permission-mode auto-edit --output-format json
+```
 
 ## Структура репозитория
 

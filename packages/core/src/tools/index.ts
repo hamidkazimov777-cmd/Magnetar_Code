@@ -26,6 +26,7 @@ export function defaultTools(options: ToolsetOptions = {}): Tool[] {
 }
 
 export { readFile, writeFile, editFile, listDir, glob, grep, runCommandTool };
+export { runCommand, DEFAULT_TIMEOUT_MS } from "./shell.js";
 export { TodoStore, todoWriteTool, type TodoItem, type TodoStatus } from "./todo.js";
 export { resolveInRoot, SandboxError, isIgnoredDir } from "./sandbox.js";
 export { unifiedDiff, truncate } from "./text.js";

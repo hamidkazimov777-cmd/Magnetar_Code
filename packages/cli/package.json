@@ -21,15 +21,13 @@
   },
   "license": "MIT",
   "author": "Hamid Kazimov",
-  "type": "commonjs",
-  "main": "index.js",
+  "type": "module",
   "bin": {
-    "magnetar": "./index.js",
-    "magnetar-code": "./index.js"
+    "magnetar": "./dist/cli.js",
+    "magnetar-code": "./dist/cli.js"
   },
   "files": [
-    "index.js",
-    "tools.js",
+    "dist",
     "README.md",
     "LICENSE"
   ],
@@ -39,13 +37,24 @@
   "publishConfig": {
     "access": "public"
   },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx src/cli.tsx",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
   "dependencies": {
-    "blessed": "^0.1.81",
-    "chalk": "^4.1.2",
-    "inquirer": "^8.2.7",
+    "chalk": "^5.6.2",
+    "ink": "^7.1.1",
     "marked": "^15.0.12",
     "marked-terminal": "^7.3.0",
-    "node-fetch": "^2.7.0",
-    "open": "^11.0.2"
+    "react": "^19.2.8"
+  },
+  "devDependencies": {
+    "@magnetar/core": "*",
+    "@types/react": "^19.2.0",
+    "ink-testing-library": "^4.0.0",
+    "tsup": "^8.5.1",
+    "tsx": "^4.23.13"
   }
 }
