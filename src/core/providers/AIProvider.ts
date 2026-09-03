@@ -2,7 +2,7 @@ export interface ChatMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
   name?: string;
-  tool_calls?: any[];
+  tool_calls?: Record<string, unknown>[];
 }
 
 export interface Model {

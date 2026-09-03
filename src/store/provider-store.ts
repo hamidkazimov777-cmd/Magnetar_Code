@@ -2,16 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { AIProvider } from '../core/providers/AIProvider';
 import { OpenAICompatibleProvider } from '../core/providers/OpenAICompatibleProvider';
-
-// Для хранения в стейте нам нужны только конфигурационные данные, 
-// а не инстансы классов, так как они не сериализуются корректно в JSON.
-export interface ProviderConfig {
-  id: string;
-  name: string;
-  baseUrl: string;
-  apiKey: string;
-  type: 'openai-compatible' | 'anthropic' | 'gemini' | 'custom';
-}
+import { ProviderConfig } from '../core/providers/types';
 
 interface ProviderState {
   providers: ProviderConfig[];
@@ -53,22 +44,13 @@ export const useProviderStore = create<ProviderState>()(
         switch (providerConfig.type) {
           case 'openai-compatible':
           case 'custom':
-            return new OpenAICompatibleProvider(
-              providerConfig.id,
-              providerConfig.name,
-              providerConfig.baseUrl,
-              providerConfig.apiKey,
-              providerConfig.type
-            );
+            return new OpenAICompatibleProvider(providerConfig);
           default:
             console.warn(`Provider type ${providerConfig.type} not fully implemented yet.`);
-            return new OpenAICompatibleProvider(
-              providerConfig.id,
-              providerConfig.name,
-              providerConfig.baseUrl,
-              providerConfig.apiKey,
-              'openai-compatible'
-            );
+            return new OpenAICompatibleProvider({
+              ...providerConfig,
+              type: 'openai-compatible'
+            });
         }
       }
     }),

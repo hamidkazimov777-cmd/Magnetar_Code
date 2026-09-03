@@ -1,4 +1,5 @@
 import { AIProvider, ChatRequest, Model } from './AIProvider';
+import { ProviderConfig } from './types';
 
 export class OpenAICompatibleProvider implements AIProvider {
   id: string;
@@ -6,13 +7,15 @@ export class OpenAICompatibleProvider implements AIProvider {
   baseUrl: string;
   apiKey: string;
   type: 'openai-compatible' | 'custom';
+  config: ProviderConfig;
 
-  constructor(id: string, name: string, baseUrl: string, apiKey: string, type: 'openai-compatible' | 'custom' = 'openai-compatible') {
-    this.id = id;
-    this.name = name;
-    this.baseUrl = baseUrl;
-    this.apiKey = apiKey;
-    this.type = type;
+  constructor(config: ProviderConfig) {
+    this.id = config.id;
+    this.name = config.name;
+    this.baseUrl = config.baseUrl;
+    this.apiKey = config.apiKey;
+    this.type = config.type as 'openai-compatible' | 'custom';
+    this.config = config;
   }
 
   async initialize(): Promise<boolean> {
@@ -39,7 +42,7 @@ export class OpenAICompatibleProvider implements AIProvider {
     }
 
     const data = await response.json();
-    return data.data.map((m: any) => ({
+    return data.data.map((m: { id: string }) => ({
       id: m.id,
       name: m.id,
       providerId: this.id,
@@ -112,7 +115,7 @@ export class OpenAICompatibleProvider implements AIProvider {
             if (content) {
               yield content;
             }
-          } catch (e) {
+          } catch {
             // Ignore parse errors for incomplete chunks
           }
         }
