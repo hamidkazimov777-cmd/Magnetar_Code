@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<div align="center">
 
-## Getting Started
+# Magnetar Code
 
-First, run the development server:
+**Терминальный AI-агент для кода + локальный веб-монитор.**
+Bring your own key — любой OpenAI-совместимый эндпоинт.
+
+</div>
+
+---
+
+> **Статус: ранняя разработка.** Фаза 0 (структура репозитория, тулинг, CI) завершена.
+> CLI пока работает в прототипном виде на `blessed`; ядро, демон и веб-монитор —
+> в работе. План: [`docs/PLAN.md`](docs/PLAN.md).
+
+## Установка
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm i -g magnetar-code
+magnetar
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Или без установки:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npx magnetar-code
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Настройка провайдера (BYOK)
 
-## Learn More
+```bash
+magnetar provider
+```
 
-To learn more about Next.js, take a look at the following resources:
+Выбираешь пресет (OpenRouter, TokenRouter, Kimi, OpenAI, Together, LM Studio) —
+остаётся ввести только API-ключ. Список моделей подтягивается с эндпоинта автоматически.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Структура репозитория
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Пакет           | npm                         | Что это                                             |
+| --------------- | --------------------------- | --------------------------------------------------- |
+| `packages/core` | `@magnetar/core` (internal) | Провайдеры, agent loop, инструменты, сессии, память |
+| `packages/cli`  | `magnetar-code`             | TUI и неинтерактивный режим                         |
+| `packages/web`  | `@magnetar/web` (internal)  | Веб-монитор рабочей папки                           |
 
-## Deploy on Vercel
+## Разработка
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm install          # один раз, из корня — npm workspaces
+npm run check        # format:check + lint + typecheck + test
+npm run cli          # запустить CLI из исходников
+npm run dev -w @magnetar/web
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Требуется Node.js >= 20.11. CI гоняет проверки на Node 20, 22 и 24.
+
+## Безопасность
+
+Агент умеет выполнять команды и править файлы. По умолчанию каждое такое действие
+требует подтверждения. Никогда не запускай агента с отключёнными подтверждениями
+в директории, содержимому которой не доверяешь.
+
+## Лицензия
+
+MIT © Hamid Kazimov

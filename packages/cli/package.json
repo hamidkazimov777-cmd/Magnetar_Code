@@ -1,0 +1,51 @@
+{
+  "name": "magnetar-code",
+  "version": "0.1.0",
+  "description": "Magnetar Code — a terminal AI coding agent with a local web monitor. Bring your own key: any OpenAI-compatible endpoint.",
+  "keywords": [
+    "ai",
+    "agent",
+    "cli",
+    "tui",
+    "coding-assistant",
+    "llm",
+    "byok",
+    "openai-compatible"
+  ],
+  "homepage": "https://github.com/hamidkazimov777-cmd/Magnetar-Web-UI#readme",
+  "bugs": "https://github.com/hamidkazimov777-cmd/Magnetar-Web-UI/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hamidkazimov777-cmd/Magnetar-Web-UI.git",
+    "directory": "packages/cli"
+  },
+  "license": "MIT",
+  "author": "Hamid Kazimov",
+  "type": "commonjs",
+  "main": "index.js",
+  "bin": {
+    "magnetar": "./index.js",
+    "magnetar-code": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "tools.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20.11"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "blessed": "^0.1.81",
+    "chalk": "^4.1.2",
+    "inquirer": "^8.2.7",
+    "marked": "^15.0.12",
+    "marked-terminal": "^7.3.0",
+    "node-fetch": "^2.7.0",
+    "open": "^11.0.2"
+  }
+}
