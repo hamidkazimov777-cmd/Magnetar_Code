@@ -1,16 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useProviderStore } from "@/store/provider-store";
 import { useChatStore } from "@/store/chat-store";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowUp, Paperclip } from "lucide-react";
 
 export function ChatContainer() {
   const [input, setInput] = useState("");
-  const { messages, isGenerating, addMessage, appendChunkToLastMessage, setGenerating, clearChat } = useChatStore();
+  const { messages, isGenerating, addMessage, appendChunkToLastMessage, setGenerating } = useChatStore();
   const { activeProviderId, getProviderInstance, providers } = useProviderStore();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isGenerating]);
 
   const handleSend = async () => {
     if (!input.trim() || !activeProviderId) return;
@@ -18,21 +22,16 @@ export function ChatContainer() {
     const userMessage = input;
     setInput("");
     
-    // Add User message
     addMessage({ role: "user", content: userMessage });
     
     const provider = getProviderInstance(activeProviderId);
-    if (!provider) return;
-
     const config = providers.find(p => p.id === activeProviderId);
-    if (!config) return;
+    if (!provider || !config) return;
 
-    // Add Empty Assistant message for streaming
     addMessage({ role: "assistant", content: "" });
     setGenerating(true);
 
     try {
-      // Create request messages ignoring UI specific fields
       const requestMessages = messages.concat({ role: "user", content: userMessage, id: "temp", createdAt: 0 }).map(m => ({
         role: m.role,
         content: m.content
@@ -54,63 +53,88 @@ export function ChatContainer() {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
 
-  const activeProvider = providers.find(p => p.id === activeProviderId);
-
   return (
-    <Card className="w-full max-w-4xl mx-auto h-[700px] flex flex-col">
-      <CardHeader className="border-b flex flex-row items-center justify-between">
-        <CardTitle>Chat {activeProvider ? `via ${activeProvider.name}` : '(No Provider Selected)'}</CardTitle>
-        <Button variant="outline" size="sm" onClick={clearChat}>Clear</Button>
-      </CardHeader>
-      
-      <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 && (
-          <div className="h-full flex items-center justify-center text-muted-foreground">
-            {activeProviderId ? "Send a message to start chat." : "Please add and select a provider first."}
+    <div className="flex flex-col w-full h-full">
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto px-4 py-8">
+        {messages.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center space-y-6">
+            <div className="flex flex-col items-center">
+              <img src="/logo.png" alt="Magnetar Logo" className="w-32 h-32 mb-4 opacity-80" />
+              <h2 className="text-3xl font-bold tracking-widest text-foreground/80">MAGNETAR</h2>
+            </div>
+            <p className="text-muted-foreground text-sm">
+              No messages yet — type below to start the conversation
+            </p>
+          </div>
+        ) : (
+          <div className="max-w-3xl mx-auto space-y-6">
+            {messages.map((msg) => (
+              <div key={msg.id} className="flex flex-col">
+                <div className="font-semibold mb-1 text-xs text-muted-foreground">
+                  {msg.role === 'user' ? 'You' : 'Magnetar'}
+                </div>
+                <div className="whitespace-pre-wrap leading-relaxed">
+                  {msg.content}
+                </div>
+              </div>
+            ))}
+            {isGenerating && (
+              <div className="flex flex-col">
+                <div className="font-semibold mb-1 text-xs text-muted-foreground">Magnetar</div>
+                <div className="flex items-center gap-1 mt-2">
+                  <span className="w-2 h-2 bg-foreground/30 rounded-full animate-bounce" />
+                  <span className="w-2 h-2 bg-foreground/30 rounded-full animate-bounce [animation-delay:-.3s]" />
+                  <span className="w-2 h-2 bg-foreground/30 rounded-full animate-bounce [animation-delay:-.5s]" />
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
           </div>
         )}
-        
-        {messages.map((msg) => (
-          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] rounded-lg p-3 ${msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-              <div className="whitespace-pre-wrap">{msg.content}</div>
-            </div>
-          </div>
-        ))}
-        {isGenerating && (
-          <div className="flex justify-start">
-            <div className="bg-muted max-w-[80%] rounded-lg p-3 flex gap-1">
-              <span className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce" />
-              <span className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce [animation-delay:-.3s]" />
-              <span className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce [animation-delay:-.5s]" />
-            </div>
-          </div>
-        )}
-      </CardContent>
+      </div>
       
-      <CardFooter className="border-t p-4 flex gap-2">
-        <Input 
-          placeholder="Type a message..." 
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={!activeProviderId || isGenerating}
-          className="flex-1"
-        />
-        <Button 
-          onClick={handleSend} 
-          disabled={!activeProviderId || isGenerating || !input.trim()}
-        >
-          Send
-        </Button>
-      </CardFooter>
-    </Card>
+      {/* Input Area */}
+      <div className="p-4 w-full max-w-3xl mx-auto pb-8">
+        <div className="relative rounded-2xl border shadow-sm bg-white dark:bg-muted/10 focus-within:ring-1 focus-within:ring-primary/50 transition-all p-3">
+          <textarea 
+            placeholder="Type a message..." 
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={!activeProviderId || isGenerating}
+            className="w-full min-h-[60px] max-h-[200px] resize-none bg-transparent outline-none placeholder:text-muted-foreground text-sm"
+            rows={2}
+          />
+          <div className="flex items-center justify-between mt-2 text-muted-foreground">
+            <div className="flex gap-2">
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
+                <Paperclip size={16} />
+              </Button>
+            </div>
+            <Button 
+              size="icon"
+              className={`h-8 w-8 rounded-full ${input.trim() ? 'bg-black text-white dark:bg-white dark:text-black hover:opacity-80' : 'bg-muted text-muted-foreground'}`}
+              onClick={handleSend} 
+              disabled={!activeProviderId || isGenerating || !input.trim()}
+            >
+              <ArrowUp size={16} />
+            </Button>
+          </div>
+        </div>
+        {!activeProviderId && (
+          <p className="text-xs text-center text-destructive mt-3 font-medium">
+            Please select or configure an AI Provider in Settings (bottom left) before chatting.
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
