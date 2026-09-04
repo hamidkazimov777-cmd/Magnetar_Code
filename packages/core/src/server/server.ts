@@ -47,6 +47,10 @@ export interface DaemonDeps {
   staticDir?: string;
   /** Shut down after this long with no client connected. 0 keeps it running. */
   idleTimeoutMs?: number;
+  /** Told when the monitor changes the approval mode, so the process that owns
+   *  the config can persist it and update what the terminal is showing. Without
+   *  this the two surfaces disagree about a security setting. */
+  onPermissionModeChange?: (mode: PermissionMode) => void;
   /** Deny an approval nobody has answered after this long. A daemon must not
    *  sit on a half-finished turn forever because a tab was closed. */
   approvalTimeoutMs?: number;
@@ -187,6 +191,7 @@ export async function startDaemon(deps: DaemonDeps): Promise<Daemon> {
       case "POST /api/permission-mode": {
         const body = await readJson<{ mode: PermissionMode }>(req);
         deps.permissions.setMode(body.mode);
+        deps.onPermissionModeChange?.(body.mode);
         return json(res, 200, { mode: body.mode });
       }
 

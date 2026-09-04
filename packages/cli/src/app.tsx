@@ -384,7 +384,18 @@ export function App({
             return say({ kind: "notice", text: `monitor: ${daemon.current.url}` });
           }
           setBusy("starting the monitor");
-          const started = await startMonitor({ ...runtime, session, model }, version, maxSteps);
+          const started = await startMonitor(
+            { ...runtime, session, model },
+            version,
+            maxSteps,
+            (next) => {
+              // Changed in the browser: the terminal must not keep claiming it
+              // will ask before running things when it no longer will.
+              setMode(next);
+              say({ kind: "notice", text: `approval mode: ${next} (from the monitor)` });
+              void saveConfig({ ...runtime.config, permissionMode: next });
+            },
+          );
           setBusy(null);
           if (!started) {
             return say({ kind: "error", text: "no monitor bundled in this install" });

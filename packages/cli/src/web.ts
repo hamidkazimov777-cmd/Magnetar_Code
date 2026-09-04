@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { startDaemon, type Daemon } from "@magnetar/core";
+import { saveConfig, startDaemon, type Daemon, type PermissionMode } from "@magnetar/core";
 import { createRuntime, type Runtime } from "./runtime.js";
 import type { ParsedArgs } from "./args.js";
 
@@ -42,10 +42,12 @@ export async function startMonitor(
   runtime: Runtime,
   version: string,
   maxSteps?: number,
+  onPermissionModeChange?: (mode: PermissionMode) => void,
 ): Promise<Daemon | null> {
   const bundled = findDir("dist", "monitor");
   if (!bundled) return null;
   return startDaemon({
+    onPermissionModeChange,
     version,
     cwd: runtime.cwd,
     provider: runtime.provider,
@@ -79,6 +81,9 @@ export async function runWeb(args: ParsedArgs, version: string): Promise<number>
     todos: runtime.todos,
     systemPrompt: runtime.systemPrompt,
     maxSteps: args.maxSteps,
+    onPermissionModeChange: (mode) => {
+      void saveConfig({ ...runtime.config, permissionMode: mode });
+    },
     ...(bundled ? { staticDir: bundled } : {}),
     // A person is about to open a browser; do not time out under them.
     idleTimeoutMs: 0,

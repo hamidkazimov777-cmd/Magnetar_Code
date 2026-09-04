@@ -343,3 +343,68 @@ describe("daemon static files", () => {
     expect(response.status).toBe(404);
   });
 });
+
+describe("changing the approval mode from the monitor", () => {
+  it("actually stops the agent asking, not just the label", async () => {
+    // The dropdown is only real if the permissions object it mutates is the
+    // same one the running loop consults.
+    await post("/api/permission-mode", { mode: "yolo" });
+
+    const seen: StreamMessage[] = [];
+    const done = collect(
+      (message) => message.type === "finished",
+      (message) => seen.push(message),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    await post("/api/chat", { text: "go" });
+    await done;
+
+    expect(seen.some((m) => m.type === "tool_end")).toBe(true);
+    expect(seen.some((m) => m.type === "approval_request")).toBe(false);
+  });
+
+  it("asks again once the mode goes back to ask", async () => {
+    await post("/api/permission-mode", { mode: "ask" });
+
+    const seen: StreamMessage[] = [];
+    const done = collect(
+      (message) => message.type === "finished",
+      (message) => {
+        seen.push(message);
+        if (message.type === "approval_request") {
+          void post("/api/approve", { id: message.id, decision: "allow" });
+        }
+      },
+    );
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    await post("/api/chat", { text: "go" });
+    await done;
+
+    expect(seen.some((m) => m.type === "approval_request")).toBe(true);
+  });
+
+  it("tells the owning process, so the setting survives and the terminal agrees", async () => {
+    const changes: string[] = [];
+    const local = await startDaemon({
+      version: "test",
+      cwd,
+      provider: provider(),
+      profile: { id: "mock", name: "Mock", baseUrl: "http://localhost/v1" },
+      model: "m1",
+      session: await Session.create(cwd, "m1"),
+      permissions: await Permissions.load(cwd, "ask"),
+      tools: [echo],
+      todos: new TodoStore(),
+      systemPrompt: "system",
+      idleTimeoutMs: 0,
+      onPermissionModeChange: (mode) => changes.push(mode),
+    });
+    await fetch(`http://127.0.0.1:${local.port}/api/permission-mode`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${local.token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "yolo" }),
+    });
+    expect(changes).toEqual(["yolo"]);
+    await local.close();
+  });
+});
