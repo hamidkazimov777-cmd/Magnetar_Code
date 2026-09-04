@@ -3,7 +3,8 @@ import path from "node:path";
 import { isIgnoredDir, resolveInRoot } from "./sandbox.js";
 import { globToRegExp } from "./glob.js";
 import { MAX_FILE_BYTES, looksBinary, truncate } from "./text.js";
-import { optStr, str, type Tool, type ToolContext } from "./types.js";
+import { optStr, str, optNum, type Tool, type ToolContext } from "./types.js";
+import { buildIndex } from "./index-repo.js";
 
 const MAX_FILES = 20_000;
 
@@ -108,5 +109,159 @@ export const grep: Tool = {
     }
     if (hits.length === 0) return { output: `No matches in ${scanned} files.` };
     return { output: truncate(hits.join("\n")) };
+  },
+};
+
+export const find_code: Tool = {
+  name: "find_code",
+  description:
+    "Semantic search over the project. Use this BEFORE grep to find where a concept or symbol is implemented. Ranks exact symbol matches highest, then partial symbols, paths, file headers, and finally file bodies.",
+  mutating: false,
+  parameters: {
+    type: "object",
+    properties: {
+      query: { type: "string", description: "Symbol name, keyword, or concept to search for" },
+      limit: { type: "number", description: "Max number of results (default 20)" },
+    },
+    required: ["query"],
+  },
+  summarize: (args) => String(args.query ?? ""),
+  async run(args, ctx) {
+    const query = str(args, "query");
+    if (!query) return { output: "Empty query." };
+    const limit = optNum(args, "limit") ?? 20;
+
+    const index = await buildIndex(ctx.cwd, ctx.signal);
+    if (ctx.signal?.aborted) return { output: "Aborted." };
+
+    interface ScoredHit {
+      path: string;
+      line: number;
+      symbol: string;
+      context: string;
+      score: number;
+    }
+    const hits: ScoredHit[] = [];
+
+    const lowerQuery = query.toLowerCase();
+    const queryTerms = lowerQuery.split(/[^a-z0-9]+/).filter(Boolean);
+
+    for (const [file, info] of Object.entries(index.files)) {
+      if (ctx.signal?.aborted) break;
+      const lowerPath = file.toLowerCase();
+
+      let fileBestScore = 0;
+      let fileBestHit: ScoredHit | null = null;
+
+      for (const sym of info.symbols) {
+        let score = 0;
+        const lowerSym = sym.name.toLowerCase();
+        if (sym.name === query) {
+          score = 100;
+        } else if (lowerSym.includes(lowerQuery)) {
+          score = 50;
+        } else if (queryTerms.length > 1 && queryTerms.every((t) => lowerSym.includes(t))) {
+          score = 30;
+        }
+
+        if (score > fileBestScore) {
+          fileBestScore = score;
+          fileBestHit = {
+            path: file,
+            line: sym.line,
+            symbol: sym.name,
+            context: sym.context,
+            score,
+          };
+        }
+      }
+
+      if (fileBestScore === 0) {
+        if (
+          lowerPath.includes(lowerQuery) ||
+          (queryTerms.length > 0 && queryTerms.every((t) => lowerPath.includes(t)))
+        ) {
+          fileBestScore = 20;
+          fileBestHit = {
+            path: file,
+            line: 1,
+            symbol: "",
+            context: info.header.split("\n")[0]?.trim().slice(0, 100) || "",
+            score: 20,
+          };
+        } else if (
+          info.header.toLowerCase().includes(lowerQuery) ||
+          (queryTerms.length > 0 && queryTerms.every((t) => info.header.toLowerCase().includes(t)))
+        ) {
+          fileBestScore = 10;
+          fileBestHit = {
+            path: file,
+            line: 1,
+            symbol: "",
+            context:
+              info.header
+                .split("\n")
+                .find((l) => queryTerms.some((t) => l.toLowerCase().includes(t)))
+                ?.trim()
+                .slice(0, 100) || "",
+            score: 10,
+          };
+        }
+      }
+
+      if (fileBestHit && fileBestScore > 0) {
+        hits.push(fileBestHit);
+      }
+    }
+
+    hits.sort((a, b) => b.score - a.score);
+
+    // Fallback if not enough results
+    if (hits.length < limit) {
+      let scanned = 0;
+      let fallbackHits = 0;
+      for (const file of Object.keys(index.files)) {
+        if (ctx.signal?.aborted) break;
+        if (scanned >= 300) break;
+
+        // Skip if already in hits
+        if (hits.some((h) => h.path === file)) continue;
+
+        const fullPath = path.join(ctx.cwd, file);
+        const buffer = await fs.readFile(fullPath).catch(() => null);
+        if (!buffer) continue;
+        scanned++;
+
+        const lines = buffer.toString("utf8").split("\n");
+        for (let i = 0; i < lines.length; i++) {
+          const lowerLine = lines[i]!.toLowerCase();
+          if (
+            lowerLine.includes(lowerQuery) ||
+            (queryTerms.length > 0 && queryTerms.every((t) => lowerLine.includes(t)))
+          ) {
+            hits.push({
+              path: file,
+              line: i + 1,
+              symbol: "",
+              context: lines[i]!.trim().slice(0, 100),
+              score: 1,
+            });
+            fallbackHits++;
+            break;
+          }
+        }
+        if (fallbackHits + hits.length >= limit) break;
+      }
+    }
+
+    hits.sort((a, b) => b.score - a.score);
+    const finalHits = hits.slice(0, limit);
+
+    if (finalHits.length === 0) return { output: "No matches found." };
+
+    const output = finalHits
+      .map((h) => `${h.path}:${h.line}  ${h.symbol ? h.symbol + "  — " : ""}${h.context}`)
+      .join("\n");
+    return { output: truncate(output) };
   },
 };

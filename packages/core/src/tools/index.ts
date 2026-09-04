@@ -1,5 +1,6 @@
 import { editFile, listDir, readFile, writeFile } from "./fs.js";
-import { glob, grep } from "./search.js";
+
+import { glob, grep, find_code } from "./search.js";
 import { runCommandTool } from "./shell.js";
 import { TodoStore, todoWriteTool, type TodoItem } from "./todo.js";
 import type { Tool } from "./types.js";
@@ -17,6 +18,7 @@ export function defaultTools(options: ToolsetOptions = {}): Tool[] {
     readFile,
     listDir,
     glob,
+    find_code,
     grep,
     editFile,
     writeFile,
@@ -25,7 +27,8 @@ export function defaultTools(options: ToolsetOptions = {}): Tool[] {
   ];
 }
 
-export { readFile, writeFile, editFile, listDir, glob, grep, runCommandTool };
+export { readFile, writeFile, editFile, listDir, glob, grep, find_code, runCommandTool };
+export { buildIndex } from "./index-repo.js";
 export { runCommand, DEFAULT_TIMEOUT_MS } from "./shell.js";
 export { TodoStore, todoWriteTool, type TodoItem, type TodoStatus } from "./todo.js";
 export { resolveInRoot, SandboxError, isIgnoredDir } from "./sandbox.js";

@@ -8,3 +8,5 @@ out
 .env.local
 *.tsbuildinfo
 coverage
+
+.magnetar/
