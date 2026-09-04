@@ -114,6 +114,27 @@ describe("App", () => {
     expect(runtime.session.history()).toHaveLength(0);
   });
 
+  it("opens the provider wizard in place instead of sending the user to a shell", async () => {
+    const { stdin, lastFrame } = app();
+    await tick();
+    stdin.write("/provider");
+    await tick();
+    stdin.write(ENTER);
+    await tick(150);
+    const frame = lastFrame() ?? "";
+    expect(frame).toContain("Provider");
+    expect(frame).toContain("OpenRouter");
+    expect(frame).not.toMatch(/in a shell/);
+  });
+
+  it("offers /web in the palette", async () => {
+    const { stdin, lastFrame } = app();
+    await tick();
+    stdin.write("/we");
+    await tick();
+    expect(lastFrame()).toContain("/web");
+  });
+
   it("opens the model picker from /model", async () => {
     const { stdin, lastFrame } = app();
     await tick();

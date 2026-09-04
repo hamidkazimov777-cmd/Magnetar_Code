@@ -90,3 +90,23 @@ describe("slash commands", () => {
     expect(filterCommands("hello")).toEqual([]);
   });
 });
+
+describe("command registry", () => {
+  it("has no duplicate names or aliases", () => {
+    const seen = new Set<string>();
+    for (const command of COMMANDS) {
+      for (const name of [command.name, ...(command.aliases ?? [])]) {
+        expect(seen.has(name), `${name} is registered twice`).toBe(false);
+        seen.add(name);
+      }
+    }
+  });
+
+  it("every command name resolves", () => {
+    // /web was handled by the app but missing from this list, so the palette
+    // never offered it. A list and a handler that disagree is the bug class.
+    for (const command of COMMANDS) {
+      expect(resolveCommand(command.name)?.command.name).toBe(command.name);
+    }
+  });
+});

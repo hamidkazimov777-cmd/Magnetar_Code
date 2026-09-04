@@ -2,8 +2,8 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { startDaemon } from "@magnetar/core";
-import { createRuntime } from "./runtime.js";
+import { startDaemon, type Daemon } from "@magnetar/core";
+import { createRuntime, type Runtime } from "./runtime.js";
 import type { ParsedArgs } from "./args.js";
 
 /** The monitor is served two ways: from the bundle inside a published install
@@ -33,6 +33,33 @@ export function openBrowser(url: string): void {
     detached: true,
     shell: process.platform === "win32",
   }).unref();
+}
+
+/** Start the daemon for an already-built runtime. Used by /web inside a live
+ *  session, so the monitor shows the session you are actually in. Returns null
+ *  when this install carries no monitor bundle. */
+export async function startMonitor(
+  runtime: Runtime,
+  version: string,
+  maxSteps?: number,
+): Promise<Daemon | null> {
+  const bundled = findDir("dist", "monitor");
+  if (!bundled) return null;
+  return startDaemon({
+    version,
+    cwd: runtime.cwd,
+    provider: runtime.provider,
+    profile: runtime.profile,
+    model: runtime.model,
+    session: runtime.session,
+    permissions: runtime.permissions,
+    tools: runtime.tools,
+    todos: runtime.todos,
+    systemPrompt: runtime.systemPrompt,
+    maxSteps,
+    staticDir: bundled,
+    idleTimeoutMs: 0,
+  });
 }
 
 export async function runWeb(args: ParsedArgs, version: string): Promise<number> {

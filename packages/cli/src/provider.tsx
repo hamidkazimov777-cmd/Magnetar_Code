@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Text, useApp } from "ink";
+import { Box, Text } from "ink";
 import {
   OpenAICompatibleProvider,
   PRESETS,
@@ -24,11 +24,17 @@ type Step =
   | { kind: "done"; text: string }
   | { kind: "failed"; text: string };
 
-/** Adding a provider runs inside the same Ink app as everything else. The
- *  prototype dropped to inquirer in a separate process and told the user to
- *  restart, because blessed and inquirer fought over the keyboard. */
-export function ProviderWizard(): React.ReactElement {
-  const { exit } = useApp();
+interface WizardProps {
+  /** Called with the saved profile's name, or null when cancelled. Lets the
+   *  caller reload its runtime instead of telling the user to restart. */
+  onDone: (savedProvider: string | null) => void;
+}
+
+/** Adding a provider runs inside the same Ink app as everything else — as a
+ *  standalone screen for `magnetar provider`, and as an overlay for /provider.
+ *  The prototype tore the screen down and told the user to restart, because
+ *  blessed and inquirer fought over the keyboard. */
+export function ProviderWizard({ onDone }: WizardProps): React.ReactElement {
   const [step, setStep] = React.useState<Step>({ kind: "preset" });
   const [draft, setDraft] = React.useState("");
   const [name, setName] = React.useState("");
@@ -77,10 +83,10 @@ export function ProviderWizard(): React.ReactElement {
             ? "Key stored in the system keychain."
             : "No keychain available — key stored in ~/.magnetar/secrets.json (owner-only).";
       }
-      setStep({ kind: "done", text: `${name} · ${model}\n${where}\n\nRun \`magnetar\` to start.` });
-      setTimeout(exit, 10);
+      setStep({ kind: "done", text: `${name} · ${model}\n${where}` });
+      setTimeout(() => onDone(name), 400);
     },
-    [apiKey, baseUrl, exit, keyless, name],
+    [apiKey, baseUrl, keyless, name, onDone],
   );
 
   switch (step.kind) {
@@ -97,7 +103,7 @@ export function ProviderWizard(): React.ReactElement {
             })),
             { value: "__custom", label: "Custom endpoint…", hint: "any OpenAI-compatible URL" },
           ]}
-          onCancel={exit}
+          onCancel={() => onDone(null)}
           onSelect={(value) => {
             if (value === "__custom") {
               setDraft("");
@@ -170,7 +176,7 @@ export function ProviderWizard(): React.ReactElement {
         <Picker
           title="Model"
           items={step.models.map((value) => ({ value, label: value }))}
-          onCancel={exit}
+          onCancel={() => onDone(null)}
           onSelect={(value) => void save(value, step.models)}
         />
       );

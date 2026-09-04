@@ -14,17 +14,21 @@ import { StatusBar } from "./components/StatusBar.js";
 import { TextInput } from "./components/TextInput.js";
 import { Picker, type PickerItem } from "./components/Picker.js";
 import { Approval } from "./components/Approval.js";
+import { ProviderWizard } from "./provider.js";
+import { openBrowser, startMonitor } from "./web.js";
 import { Transcript, type Item } from "./components/Transcript.js";
 import { filterCommands, resolveCommand } from "./commands.js";
 import { renderMarkdown } from "./markdown.js";
 import { theme } from "./theme.js";
 import type { Runtime } from "./runtime.js";
+import type { Daemon } from "@magnetar/core";
 import * as actions from "./actions.js";
 
 type Overlay =
   | { kind: "none" }
   | { kind: "approval"; request: ApprovalRequest; resolve: (answer: Answer) => void }
-  | { kind: "picker"; title: string; items: PickerItem[]; onSelect: (value: string) => void };
+  | { kind: "picker"; title: string; items: PickerItem[]; onSelect: (value: string) => void }
+  | { kind: "provider" };
 
 interface Props {
   runtime: Runtime;
@@ -32,18 +36,23 @@ interface Props {
   initialMessage?: string;
   maxSteps: number;
   maxCostUsd?: number;
+  /** Rebuilds the runtime after the provider changes, so a new key takes
+   *  effect without restarting the session. */
+  reload?: () => Promise<Runtime>;
 }
 
 let nextId = 0;
 const id = () => `i${nextId++}`;
 
 export function App({
-  runtime,
+  runtime: initialRuntime,
   version,
   initialMessage,
   maxSteps,
   maxCostUsd,
+  reload,
 }: Props): React.ReactElement {
+  const [runtime, setRuntime] = React.useState(initialRuntime);
   const { exit } = useApp();
   const { stdout } = useStdout();
   const width = Math.max(40, (stdout?.columns ?? 80) - 2);
@@ -79,6 +88,7 @@ export function App({
   const abort = React.useRef<AbortController | null>(null);
   const touched = React.useRef<Set<string>>(new Set());
   const streamBuffer = React.useRef("");
+  const daemon = React.useRef<Daemon | null>(null);
 
   const say = React.useCallback((item: Omit<Item, "id">) => {
     setItems((current) => [...current, { ...item, id: id() }]);
@@ -326,15 +336,22 @@ export function App({
             },
           });
         case "/provider":
-          return say({
-            kind: "notice",
-            text: "run `magnetar provider` in a shell to add or change a provider",
-          });
-        case "/web":
-          return say({
-            kind: "notice",
-            text: "run `magnetar web` — the monitor lands in the next phase",
-          });
+          return setOverlay({ kind: "provider" });
+        case "/web": {
+          if (daemon.current) {
+            openBrowser(daemon.current.url);
+            return say({ kind: "notice", text: `monitor: ${daemon.current.url}` });
+          }
+          setBusy("starting the monitor");
+          const started = await startMonitor({ ...runtime, session, model }, version, maxSteps);
+          setBusy(null);
+          if (!started) {
+            return say({ kind: "error", text: "no monitor bundled in this install" });
+          }
+          daemon.current = started;
+          openBrowser(started.url);
+          return say({ kind: "notice", text: `monitor: ${started.url}` });
+        }
         case "/doctor":
           return say({ kind: "raw", text: await doctorText(runtime, model) });
         default:
@@ -412,6 +429,24 @@ export function App({
 
       {overlay.kind === "approval" ? (
         <Approval request={overlay.request} onAnswer={overlay.resolve} />
+      ) : null}
+
+      {overlay.kind === "provider" ? (
+        <ProviderWizard
+          onDone={async (saved) => {
+            setOverlay({ kind: "none" });
+            if (!saved || !reload) return;
+            const next = await reload().catch((error: Error) => {
+              say({ kind: "error", text: error.message });
+              return null;
+            });
+            if (next) {
+              setRuntime(next);
+              setModel(next.model);
+              say({ kind: "notice", text: `provider: ${next.profile.name} · ${next.model}` });
+            }
+          }}
+        />
       ) : null}
 
       {overlay.kind === "picker" ? (

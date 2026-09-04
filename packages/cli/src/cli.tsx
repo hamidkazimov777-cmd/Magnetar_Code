@@ -27,7 +27,8 @@ async function main(): Promise<number> {
     return 0;
   }
   if (args.command === "provider") {
-    const { waitUntilExit } = render(<ProviderWizard />);
+    const app = render(<ProviderWizard onDone={() => app.unmount()} />);
+    const { waitUntilExit } = app;
     await waitUntilExit();
     return 0;
   }
@@ -74,6 +75,7 @@ async function main(): Promise<number> {
         runtime={runtime}
         version={version}
         initialMessage={args.initialMessage}
+        reload={() => createRuntime(args)}
         maxSteps={args.maxSteps ?? 25}
         maxCostUsd={args.maxCostUsd}
       />,
