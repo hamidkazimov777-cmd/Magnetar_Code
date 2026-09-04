@@ -38,16 +38,37 @@ export function openBrowser(url: string): void {
 /** Start the daemon for an already-built runtime. Used by /web inside a live
  *  session, so the monitor shows the session you are actually in. Returns null
  *  when this install carries no monitor bundle. */
+const providerList = (runtime: Runtime) =>
+  runtime.config.providers.map((entry) => ({
+    id: entry.id,
+    name: entry.name,
+    model: entry.model,
+  }));
+
 export async function startMonitor(
   runtime: Runtime,
   version: string,
   maxSteps?: number,
   onPermissionModeChange?: (mode: PermissionMode) => void,
+  switchProvider?: (id: string) => Promise<Runtime>,
 ): Promise<Daemon | null> {
   const bundled = findDir("dist", "monitor");
   if (!bundled) return null;
   return startDaemon({
     onPermissionModeChange,
+    providers: providerList(runtime),
+    onProviderChange: switchProvider
+      ? async (id) => {
+          const next = await switchProvider(id).catch(() => null);
+          if (!next) return null;
+          return {
+            provider: next.provider,
+            profile: next.profile,
+            model: next.model,
+            providers: providerList(next),
+          };
+        }
+      : undefined,
     version,
     cwd: runtime.cwd,
     provider: runtime.provider,
@@ -81,6 +102,17 @@ export async function runWeb(args: ParsedArgs, version: string): Promise<number>
     todos: runtime.todos,
     systemPrompt: runtime.systemPrompt,
     maxSteps: args.maxSteps,
+    providers: providerList(runtime),
+    onProviderChange: async (id) => {
+      const next = await createRuntime(args, id).catch(() => null);
+      if (!next) return null;
+      return {
+        provider: next.provider,
+        profile: next.profile,
+        model: next.model,
+        providers: providerList(next),
+      };
+    },
     onPermissionModeChange: (mode) => {
       void saveConfig({ ...runtime.config, permissionMode: mode });
     },

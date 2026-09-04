@@ -43,6 +43,8 @@ interface Props {
   /** Rebuilds the runtime after the provider changes, so a new key takes
    *  effect without restarting the session. */
   reload?: () => Promise<Runtime>;
+  /** Rebuilds it against an already-configured provider, by id. */
+  switchProvider?: (id: string) => Promise<Runtime>;
 }
 
 let nextId = 0;
@@ -55,6 +57,7 @@ export function App({
   maxSteps,
   maxCostUsd,
   reload,
+  switchProvider,
 }: Props): React.ReactElement {
   const [runtime, setRuntime] = React.useState(initialRuntime);
   const { exit } = useApp();
@@ -376,8 +379,41 @@ export function App({
               say({ kind: "notice", text: `approval mode: ${next}` });
             },
           });
-        case "/provider":
-          return setOverlay({ kind: "provider" });
+        case "/provider": {
+          const configured = runtime.config.providers;
+          if (configured.length === 0) return setOverlay({ kind: "provider" });
+          // Switching between providers you already set up must not ask for a
+          // key again — it is stored under the profile id and still there.
+          return setOverlay({
+            kind: "picker",
+            title: "Provider",
+            items: [
+              ...configured.map((entry) => ({
+                value: entry.id,
+                label: entry.name,
+                hint: entry.id === runtime.profile.id ? `${entry.model} · current` : entry.model,
+              })),
+              { value: "__add", label: "+ Add a provider…", hint: "needs an API key" },
+            ],
+            onSelect: async (value) => {
+              setOverlay({ kind: "none" });
+              if (value === "__add") return setOverlay({ kind: "provider" });
+              if (value === runtime.profile.id) return;
+              if (!switchProvider) {
+                return say({ kind: "error", text: "cannot switch providers in this session" });
+              }
+              const next = await switchProvider(value).catch((error: Error) => {
+                say({ kind: "error", text: error.message });
+                return null;
+              });
+              if (next) {
+                setRuntime(next);
+                setModel(next.model);
+                say({ kind: "notice", text: `${next.profile.name} · ${next.model}` });
+              }
+            },
+          });
+        }
         case "/web": {
           if (daemon.current) {
             openBrowser(daemon.current.url);
@@ -395,6 +431,18 @@ export function App({
               say({ kind: "notice", text: `approval mode: ${next} (from the monitor)` });
               void saveConfig({ ...runtime.config, permissionMode: next });
             },
+            switchProvider
+              ? async (id) => {
+                  const next = await switchProvider(id);
+                  setRuntime(next);
+                  setModel(next.model);
+                  say({
+                    kind: "notice",
+                    text: `${next.profile.name} · ${next.model} (from the monitor)`,
+                  });
+                  return next;
+                }
+              : undefined,
           );
           setBusy(null);
           if (!started) {
@@ -538,6 +586,7 @@ export function App({
     [
       cost,
       exit,
+      switchProvider,
       maxCostUsd,
       maxSteps,
       model,

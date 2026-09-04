@@ -33,9 +33,10 @@ export interface Runtime {
   cwd: string;
 }
 
-export async function createRuntime(args: ParsedArgs): Promise<Runtime> {
+export async function createRuntime(args: ParsedArgs, providerId?: string): Promise<Runtime> {
   const cwd = path.resolve(args.cwd ?? process.cwd());
   const config = await loadConfig();
+  if (providerId) config.activeProviderId = providerId;
   const profile = activeProvider(config);
   if (!profile) {
     throw new SetupError(
@@ -57,7 +58,7 @@ export async function createRuntime(args: ParsedArgs): Promise<Runtime> {
     title: "Magnetar Code",
   });
 
-  const model = args.model ?? profile.model;
+  const model = providerId ? profile.model : (args.model ?? profile.model);
   const session = await openSession(args, cwd, model);
   const mode: PermissionMode = args.permissionMode ?? config.permissionMode;
   const permissions = await Permissions.load(cwd, mode);

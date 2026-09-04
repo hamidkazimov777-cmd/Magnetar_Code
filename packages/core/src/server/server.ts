@@ -36,6 +36,8 @@ export interface DaemonDeps {
   cwd: string;
   provider: OpenAICompatibleProvider;
   profile: { id: string; name: string; baseUrl: string; models?: string[] };
+  /** The providers already set up, for the monitor's switcher. */
+  providers?: { id: string; name: string; model: string }[];
   model: string;
   session: Session;
   permissions: Permissions;
@@ -51,6 +53,14 @@ export interface DaemonDeps {
    *  the config can persist it and update what the terminal is showing. Without
    *  this the two surfaces disagree about a security setting. */
   onPermissionModeChange?: (mode: PermissionMode) => void;
+  /** Asked to rebuild against another configured provider. Returns what the
+   *  daemon should use from now on, or null if it cannot. */
+  onProviderChange?: (id: string) => Promise<{
+    provider: OpenAICompatibleProvider;
+    profile: { id: string; name: string; baseUrl: string; models?: string[] };
+    model: string;
+    providers?: { id: string; name: string; model: string }[];
+  } | null>;
   /** Deny an approval nobody has answered after this long. A daemon must not
    *  sit on a half-finished turn forever because a tab was closed. */
   approvalTimeoutMs?: number;
@@ -72,6 +82,9 @@ export async function startDaemon(deps: DaemonDeps): Promise<Daemon> {
   const token = newToken();
   let session = deps.session;
   let model = deps.model;
+  let provider = deps.provider;
+  let profile = deps.profile;
+  let providers = deps.providers ?? [];
   let busy = false;
   let abort: AbortController | null = null;
 
@@ -182,6 +195,18 @@ export async function startDaemon(deps: DaemonDeps): Promise<Daemon> {
       case "GET /api/file":
         return json(res, 200, await readTextFile(url.searchParams.get("path") ?? ""));
 
+      case "POST /api/provider": {
+        const body = await readJson<{ id: string }>(req);
+        if (busy) return json(res, 409, { error: "A turn is running" });
+        const next = await deps.onProviderChange?.(body.id);
+        if (!next) return json(res, 400, { error: "Cannot switch to that provider" });
+        provider = next.provider;
+        profile = next.profile;
+        model = next.model;
+        if (next.providers) providers = next.providers;
+        return json(res, 200, { id: profile.id, name: profile.name, model });
+      }
+
       case "POST /api/model": {
         const body = await readJson<{ model: string }>(req);
         if (typeof body.model === "string" && body.model) model = body.model;
@@ -262,7 +287,7 @@ export async function startDaemon(deps: DaemonDeps): Promise<Daemon> {
     const controller = abort;
     try {
       const result = await runAgent(text, {
-        provider: deps.provider,
+        provider,
         model,
         tools: deps.tools,
         permissions: deps.permissions,
@@ -318,9 +343,10 @@ export async function startDaemon(deps: DaemonDeps): Promise<Daemon> {
     return {
       version: deps.version,
       cwd: deps.cwd,
-      provider: { id: deps.profile.id, name: deps.profile.name, baseUrl: deps.profile.baseUrl },
+      provider: { id: profile.id, name: profile.name, baseUrl: profile.baseUrl },
+      providers,
       model,
-      models: deps.profile.models ?? [],
+      models: profile.models ?? [],
       permissionMode: deps.permissions.getMode(),
       session: session.meta,
       sessions: await Session.list(deps.cwd),

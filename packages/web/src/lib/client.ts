@@ -46,6 +46,11 @@ export const api = {
   approve: (id: string, decision: "allow" | "always" | "deny") =>
     request<{ ok: true }>("approve", { method: "POST", body: JSON.stringify({ id, decision }) }),
   cancel: () => request<{ ok: true }>("cancel", { method: "POST" }),
+  setProvider: (id: string) =>
+    request<{ id: string; name: string; model: string }>("provider", {
+      method: "POST",
+      body: JSON.stringify({ id }),
+    }),
   setModel: (model: string) =>
     request<{ model: string }>("model", { method: "POST", body: JSON.stringify({ model }) }),
   setPermissionMode: (mode: PermissionMode) =>

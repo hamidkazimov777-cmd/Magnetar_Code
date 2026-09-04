@@ -76,6 +76,7 @@ async function main(): Promise<number> {
         version={version}
         initialMessage={args.initialMessage}
         reload={() => createRuntime(args)}
+        switchProvider={(id) => createRuntime(args, id)}
         maxSteps={args.maxSteps ?? 25}
         maxCostUsd={args.maxCostUsd}
       />,

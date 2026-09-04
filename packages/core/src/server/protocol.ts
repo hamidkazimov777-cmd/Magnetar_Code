@@ -9,6 +9,9 @@ export interface StateResponse {
   version: string;
   cwd: string;
   provider: { id: string; name: string; baseUrl: string };
+  /** Everything already configured, so the monitor can switch between them
+   *  without asking for a key that is already stored. */
+  providers: { id: string; name: string; model: string }[];
   model: string;
   models: string[];
   permissionMode: PermissionMode;

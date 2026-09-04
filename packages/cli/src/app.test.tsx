@@ -128,9 +128,32 @@ describe("App", () => {
     expect(lastFrame()).toContain("/exit");
   });
 
+  it("lists configured providers instead of asking for a key again", async () => {
+    // Switching from DeepSeek to OpenRouter and back should not mean retyping
+    // a key that is already in the keychain.
+    runtime.config.providers = [
+      { id: "mock", name: "Mock", baseUrl: "http://localhost/v1", model: "mock-1" },
+      { id: "other", name: "Other", baseUrl: "http://other/v1", model: "big-1" },
+    ];
+    const { stdin, lastFrame } = app();
+    await tick();
+    stdin.write("/provider");
+    await tick();
+    stdin.write(ENTER);
+    await tick(150);
+    const frame = lastFrame() ?? "";
+    expect(frame).toContain("Other");
+    expect(frame).toContain("current");
+    expect(frame).toContain("Add a provider");
+    // The wizard's own screen must not be what opened.
+    expect(frame).not.toContain("Custom endpoint");
+  });
+
   it("opens the provider wizard in place instead of sending the user to a shell", async () => {
     const { stdin, lastFrame } = app();
     await tick();
+    // No providers configured yet: straight to the wizard.
+    runtime.config.providers = [];
     stdin.write("/provider");
     await tick();
     stdin.write(ENTER);

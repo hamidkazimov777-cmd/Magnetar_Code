@@ -223,6 +223,25 @@ export function Monitor(): React.ReactElement {
         </span>
         <span className="crumbs">{state ? shorten(state.cwd) : "…"}</span>
         <span className="spacer" />
+        {state && state.providers.length > 1 ? (
+          <select
+            value={state.provider.id}
+            title="Provider"
+            onChange={(event) =>
+              void api
+                .setProvider(event.target.value)
+                .then(refresh)
+                .catch((error: Error) => add({ kind: "error", text: error.message }))
+            }
+          >
+            {state.providers.map((entry) => (
+              <option key={entry.id} value={entry.id}>
+                {entry.name}
+              </option>
+            ))}
+          </select>
+        ) : null}
+
         {state && state.models.length > 0 ? (
           <select
             value={state.model}

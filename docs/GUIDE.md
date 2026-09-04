@@ -128,7 +128,11 @@ You can change any of this later without retyping a key:
 
 - `/model` — the everyday model
 - `/memory-model` — the analyst
-- `/provider` — add another service or switch
+- `/provider` — switch between the services you already set up, or add one
+
+Add as many as you like. Each key lives in the keychain under its own profile,
+so moving between DeepSeek and OpenRouter is two keystrokes rather than pasting
+a key again. In the browser the switcher sits in the header, next to the model.
 
 ---
 

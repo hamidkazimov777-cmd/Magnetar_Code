@@ -167,6 +167,7 @@ describe("daemon authentication", () => {
 describe("daemon state and files", () => {
   it("describes the run without leaking the API key", async () => {
     const state = await get<Record<string, unknown>>("/api/state");
+    expect(Array.isArray(state.providers)).toBe(true);
     expect(state).toMatchObject({ cwd, model: "m1", permissionMode: "ask", busy: false });
     expect(state.provider).toEqual({ id: "mock", name: "Mock", baseUrl: "http://localhost/v1" });
     expect(JSON.stringify(state)).not.toContain("apiKey");
@@ -199,6 +200,7 @@ describe("daemon state and files", () => {
       body: JSON.stringify({ mode: "auto-edit" }),
     });
     const state = await get<Record<string, unknown>>("/api/state");
+    expect(Array.isArray(state.providers)).toBe(true);
     expect(state.model).toBe("m2");
     expect(state.permissionMode).toBe("auto-edit");
   });
@@ -313,6 +315,88 @@ describe("daemon chat", () => {
       body: JSON.stringify({ id: "nope", decision: "allow" }),
     });
     expect(response.status).toBe(404);
+  });
+});
+
+describe("switching between configured providers", () => {
+  it("rebuilds against another provider without asking for a key", async () => {
+    const asked: string[] = [];
+    const second = provider();
+    const local = await startDaemon({
+      version: "test",
+      cwd,
+      provider: provider(),
+      profile: { id: "a", name: "First", baseUrl: "http://a/v1" },
+      providers: [
+        { id: "a", name: "First", model: "m1" },
+        { id: "b", name: "Second", model: "m9" },
+      ],
+      model: "m1",
+      session: await Session.create(cwd, "m1"),
+      permissions: await Permissions.load(cwd, "yolo"),
+      tools: [echo],
+      todos: new TodoStore(),
+      systemPrompt: "system",
+      idleTimeoutMs: 0,
+      onProviderChange: async (id) => {
+        asked.push(id);
+        if (id !== "b") return null;
+        return {
+          provider: second,
+          profile: { id: "b", name: "Second", baseUrl: "http://b/v1" },
+          model: "m9",
+        };
+      },
+    });
+    const base = `http://127.0.0.1:${local.port}`;
+    const headers = { Authorization: `Bearer ${local.token}`, "Content-Type": "application/json" };
+
+    const before = (await (await fetch(`${base}/api/state`, { headers })).json()) as {
+      provider: { name: string };
+      providers: unknown[];
+    };
+    expect(before.provider.name).toBe("First");
+    expect(before.providers).toHaveLength(2);
+
+    const switched = await fetch(`${base}/api/provider`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ id: "b" }),
+    });
+    expect(switched.status).toBe(200);
+    expect(asked).toEqual(["b"]);
+
+    const after = (await (await fetch(`${base}/api/state`, { headers })).json()) as {
+      provider: { name: string };
+      model: string;
+    };
+    expect(after.provider.name).toBe("Second");
+    expect(after.model).toBe("m9");
+    await local.close();
+  });
+
+  it("refuses a provider it cannot build", async () => {
+    const local = await startDaemon({
+      version: "test",
+      cwd,
+      provider: provider(),
+      profile: { id: "a", name: "First", baseUrl: "http://a/v1" },
+      model: "m1",
+      session: await Session.create(cwd, "m1"),
+      permissions: await Permissions.load(cwd, "ask"),
+      tools: [echo],
+      todos: new TodoStore(),
+      systemPrompt: "system",
+      idleTimeoutMs: 0,
+      onProviderChange: async () => null,
+    });
+    const response = await fetch(`http://127.0.0.1:${local.port}/api/provider`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${local.token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ id: "nope" }),
+    });
+    expect(response.status).toBe(400);
+    await local.close();
   });
 });
 
