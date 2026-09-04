@@ -255,12 +255,14 @@ export function App({
         case "/init": {
           // Analysis is rare and worth doing properly, so it runs on the model
           // chosen for memory rather than whatever is answering today.
-          const analyst = runtime.profile.memoryModel;
-          if (analyst && analyst !== model) {
-            say({ kind: "notice", text: `analysing with ${analyst}` });
-            return send(actions.initPrompt(), analyst);
-          }
-          return send(actions.initPrompt());
+          const analyst = runtime.profile.memoryModel ?? model;
+          say({
+            kind: "notice",
+            text: runtime.profile.memoryModel
+              ? `analysing with ${analyst}`
+              : `analysing with ${analyst} — set a stronger one with /memory-model`,
+          });
+          return send(actions.initPrompt(), analyst);
         }
         case "/diff":
           return say({ kind: "raw", text: await actions.diffText(runtime.cwd) });
@@ -407,6 +409,35 @@ export function App({
         case "/models": {
           const list = runtime.profile.models ?? (await runtime.provider.listModels());
           return say({ kind: "raw", text: list.join("\n") });
+        }
+        case "/memory-model": {
+          const models = runtime.profile.models?.length
+            ? runtime.profile.models
+            : await runtime.provider.listModels().catch(() => [] as string[]);
+          if (models.length === 0) {
+            return say({ kind: "error", text: "the provider returned no models" });
+          }
+          const current = runtime.profile.memoryModel ?? model;
+          return setOverlay({
+            kind: "picker",
+            title: `Model for analysing the project · now: ${current}`,
+            items: models.map((value) => ({
+              value,
+              label: value,
+              hint: value === current ? "current" : undefined,
+            })),
+            onSelect: async (value) => {
+              setOverlay({ kind: "none" });
+              const profile = runtime.config.providers.find((p) => p.id === runtime.profile.id);
+              if (profile) {
+                profile.memoryModel = value;
+                profile.models = models;
+                await saveConfig(runtime.config);
+                runtime.profile.memoryModel = value;
+              }
+              say({ kind: "notice", text: `/init will analyse with ${value}` });
+            },
+          });
         }
         case "/rules":
           return say({ kind: "notice", text: projectMemoryFile(runtime.cwd) });

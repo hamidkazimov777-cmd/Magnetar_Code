@@ -134,6 +134,9 @@ export const COMMANDS: SlashCommand[] = [
   // memory
   C("/init", "Analyse the project and write MAGNETAR.md", "memory"),
   C("/memory", "Show the project instructions in use", "memory"),
+  C("/memory-model", "Pick the model that analyses the project", "memory", {
+    aliases: ["/analyst"],
+  }),
   C("/remember", "Save a fact about this project", "memory", { argument: "<fact>" }),
   C("/btw", "Note something in passing, without interrupting", "memory", { argument: "<note>" }),
   C("/forget", "Delete a remembered fact", "memory", { argument: "<name>" }),

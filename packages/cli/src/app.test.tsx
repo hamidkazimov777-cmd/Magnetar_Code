@@ -149,6 +149,20 @@ describe("App", () => {
     expect(lastFrame()).toContain("/web");
   });
 
+  it("lets an existing provider pick an analyst without redoing the key", async () => {
+    // Providers configured before the wizard asked for one have no memory
+    // model, and re-entering an API key to set it would be absurd.
+    const { stdin, lastFrame } = app();
+    await tick();
+    stdin.write("/memory-model");
+    await tick();
+    stdin.write(ENTER);
+    await tick(150);
+    const frame = lastFrame() ?? "";
+    expect(frame).toContain("analysing the project");
+    expect(frame).toContain("mock-2");
+  });
+
   it("opens the model picker from /model", async () => {
     const { stdin, lastFrame } = app();
     await tick();
