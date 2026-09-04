@@ -50,7 +50,7 @@ export function Files({ refreshKey }: { refreshKey: number }): React.ReactElemen
 
   return (
     <>
-      <div className="panel-title">FILES</div>
+      <div className="panel-title">Files</div>
       {root.length === 0 ? (
         <div className="notice" style={{ padding: 8 }}>
           empty

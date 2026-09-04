@@ -36,7 +36,7 @@ export function Memory(): React.ReactElement {
 
   return (
     <>
-      <div className="panel-title">MEMORY</div>
+      <div className="panel-title">Memory</div>
       {files.length === 0 ? (
         <div className="notice" style={{ padding: 8 }}>
           No MAGNETAR.md yet. Run /init in the terminal to write one.

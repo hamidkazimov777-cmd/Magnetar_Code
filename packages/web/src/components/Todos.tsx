@@ -6,7 +6,7 @@ export function Todos({ items }: { items: readonly TodoItem[] }): React.ReactEle
   if (items.length === 0) return null;
   return (
     <>
-      <div className="panel-title">PLAN</div>
+      <div className="panel-title">Plan</div>
       {items.map((item, index) => (
         <div
           key={index}

@@ -49,7 +49,11 @@ export function Stream({ entries, streaming }: Props): React.ReactElement {
     >
       {entries.length === 0 && !streaming ? (
         <div className="empty">
-          Nothing yet. Ask below, or keep working in the terminal — this view follows along.
+          <div className="empty-brand">
+            <img src="/logo.png" alt="" />
+            <h1>What are we building?</h1>
+          </div>
+          <p>Ask below, or keep working in the terminal — this view follows along.</p>
         </div>
       ) : null}
 

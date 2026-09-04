@@ -21,9 +21,7 @@ export function Approval({ request, onAnswer }: Props): React.ReactElement {
   return (
     <div className="approval">
       <div className="approval-title">
-        {request.tool === "run_command"
-          ? "RUN THIS COMMAND?"
-          : `ALLOW ${request.tool.toUpperCase()}?`}
+        {request.tool === "run_command" ? "Run this command?" : `Allow ${request.tool}?`}
       </div>
       <div className="approval-target">{request.summary}</div>
       <div className="approval-buttons">

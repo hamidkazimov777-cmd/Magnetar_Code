@@ -201,8 +201,9 @@ export function Monitor(): React.ReactElement {
   if (failure) {
     return (
       <div className="empty">
-        <div className="wordmark" style={{ marginBottom: 16 }}>
-          MAGNETAR
+        <div className="empty-brand" style={{ marginBottom: 16 }}>
+          <img src="/logo.png" alt="" />
+          <h1>Magnetar</h1>
         </div>
         Cannot reach the agent: {failure}
         <div className="notice" style={{ marginTop: 8 }}>
@@ -215,19 +216,17 @@ export function Monitor(): React.ReactElement {
   return (
     <div className="shell">
       <header className="header">
-        <span className="wordmark">MAGNETAR</span>
+        <span className="brand">
+          <img src="/logo.png" alt="" />
+          Magnetar
+          <span className="brand-tag">monitor</span>
+        </span>
         <span className="crumbs">{state ? shorten(state.cwd) : "…"}</span>
         <span className="spacer" />
         {state && state.models.length > 0 ? (
           <select
             value={state.model}
             onChange={(event) => void api.setModel(event.target.value).then(refresh)}
-            style={{
-              background: "var(--panel-2)",
-              color: "inherit",
-              border: "2px solid var(--line-bright)",
-              font: "inherit",
-            }}
           >
             {state.models.map((model) => (
               <option key={model} value={model}>
@@ -243,12 +242,6 @@ export function Monitor(): React.ReactElement {
           onChange={(event) =>
             void api.setPermissionMode(event.target.value as PermissionMode).then(refresh)
           }
-          style={{
-            background: "var(--panel-2)",
-            color: "inherit",
-            border: "2px solid var(--line-bright)",
-            font: "inherit",
-          }}
         >
           <option value="ask">ask</option>
           <option value="auto-edit">auto-edit</option>
@@ -293,18 +286,12 @@ export function Monitor(): React.ReactElement {
         </div>
 
         <div className="col col-right">
-          <div style={{ display: "flex", gap: 4, padding: 8 }}>
-            <button
-              style={{ flex: 1, borderColor: panel === "files" ? "var(--accent)" : undefined }}
-              onClick={() => setPanel("files")}
-            >
-              files
+          <div className="tabs">
+            <button data-active={panel === "files"} onClick={() => setPanel("files")}>
+              Files
             </button>
-            <button
-              style={{ flex: 1, borderColor: panel === "memory" ? "var(--accent)" : undefined }}
-              onClick={() => setPanel("memory")}
-            >
-              memory
+            <button data-active={panel === "memory"} onClick={() => setPanel("memory")}>
+              Memory
             </button>
           </div>
           {panel === "files" ? <Files refreshKey={filesKey} /> : <Memory />}

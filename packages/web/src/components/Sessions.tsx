@@ -19,12 +19,10 @@ export function Sessions({
 }: Props): React.ReactElement {
   return (
     <>
-      <div className="panel-title">SESSIONS</div>
-      <div style={{ padding: "0 8px 8px" }}>
-        <button style={{ width: "100%" }} onClick={onNew}>
-          + new
-        </button>
-      </div>
+      <div className="panel-title">Sessions</div>
+      <button className="new-session" onClick={onNew}>
+        + New session
+      </button>
       {sessions.map((session) => (
         <div key={session.id} className="row-wrap">
           <button

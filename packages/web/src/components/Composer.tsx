@@ -159,50 +159,54 @@ export function Composer({ busy, onSend, onCancel, onCommand }: Props): React.Re
         </div>
       ) : null}
 
-      <label className="clip" title="attach a file">
-        <input
-          type="file"
-          multiple
-          onChange={(event) => void attach(event.target.files)}
-          style={{ display: "none" }}
-        />
-        ⊕
-      </label>
+      <div className="composer-box">
+        <label className="clip" title="attach a file">
+          <input
+            type="file"
+            multiple
+            onChange={(event) => void attach(event.target.files)}
+            style={{ display: "none" }}
+          />
+          +
+        </label>
 
-      <textarea
-        ref={box}
-        value={draft}
-        placeholder={busy ? "working…" : "ask, / for commands, @ for a file"}
-        onChange={(event) => setDraft(event.target.value)}
-        onKeyDown={(event) => {
-          if (items.length > 0) {
-            if (event.key === "ArrowDown") {
-              event.preventDefault();
-              return setIndex((current) => (current + 1) % items.length);
+        <textarea
+          ref={box}
+          value={draft}
+          placeholder={busy ? "working…" : "ask, / for commands, @ for a file"}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (items.length > 0) {
+              if (event.key === "ArrowDown") {
+                event.preventDefault();
+                return setIndex((current) => (current + 1) % items.length);
+              }
+              if (event.key === "ArrowUp") {
+                event.preventDefault();
+                return setIndex((current) => (current - 1 + items.length) % items.length);
+              }
+              if (event.key === "Tab" || (event.key === "Enter" && !event.shiftKey)) {
+                event.preventDefault();
+                return accept(items[index]!.value);
+              }
+              if (event.key === "Escape") return setItems([]);
             }
-            if (event.key === "ArrowUp") {
+            if (event.key === "Enter" && !event.shiftKey) {
               event.preventDefault();
-              return setIndex((current) => (current - 1 + items.length) % items.length);
+              submit();
             }
-            if (event.key === "Tab" || (event.key === "Enter" && !event.shiftKey)) {
-              event.preventDefault();
-              return accept(items[index]!.value);
-            }
-            if (event.key === "Escape") return setItems([]);
-          }
-          if (event.key === "Enter" && !event.shiftKey) {
-            event.preventDefault();
-            submit();
-          }
-        }}
-      />
-      {busy ? (
-        <button onClick={onCancel}>stop</button>
-      ) : (
-        <button onClick={submit} disabled={!draft.trim()}>
-          send
-        </button>
-      )}
+          }}
+        />
+        {busy ? (
+          <button className="send" onClick={onCancel}>
+            Stop
+          </button>
+        ) : (
+          <button className="send" onClick={submit} disabled={!draft.trim()}>
+            Send
+          </button>
+        )}
+      </div>
     </div>
   );
 }
