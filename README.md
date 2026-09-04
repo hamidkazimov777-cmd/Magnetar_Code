@@ -24,6 +24,67 @@ magnetar              # start working in this directory
 
 ---
 
+## Install, step by step
+
+**1. Check Node.js.** You need version 20 or newer.
+
+```bash
+node -v
+```
+
+No Node, or a number below 20? Install the LTS build from
+[nodejs.org](https://nodejs.org) and reopen your terminal.
+
+**2. Install.**
+
+```bash
+npm i -g magnetar-code
+```
+
+On a permission error (`EACCES`), run the same command with `sudo`.
+
+**3. Check it.**
+
+```bash
+magnetar --version
+```
+
+If the shell says `command not found`, reopen the terminal.
+
+**4. Connect your key.**
+
+```bash
+magnetar provider
+```
+
+Arrow keys pick a provider, then paste your API key, then choose a model. The
+key is yours — none ships with the package.
+
+**5. Work.** Go to a project folder and run `magnetar`. Press `/` for commands,
+`Ctrl+C` twice to quit.
+
+### Update
+
+```bash
+npm i -g magnetar-code@latest
+```
+
+### Uninstall
+
+```bash
+npm uninstall -g magnetar-code
+```
+
+If you had linked a source checkout, run `npm unlink -g magnetar-code` first.
+
+### Something is wrong
+
+```bash
+magnetar doctor
+```
+
+It checks the key, the endpoint and the model, and says which one is at fault.
+
 ## The monitor
 
 `magnetar web` opens the same session in a browser: the live stream, every tool
