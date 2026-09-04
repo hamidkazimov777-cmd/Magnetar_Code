@@ -85,6 +85,9 @@ magnetar doctor
 
 It checks the key, the endpoint and the model, and says which one is at fault.
 
+**New here?** The [complete guide](docs/GUIDE.md) walks through every command
+with examples, from installing to shipping an app.
+
 ## The monitor
 
 `magnetar web` opens the same session in a browser: the live stream, every tool
