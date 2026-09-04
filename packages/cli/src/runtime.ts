@@ -53,7 +53,7 @@ export async function createRuntime(args: ParsedArgs): Promise<Runtime> {
   const provider = new OpenAICompatibleProvider({
     baseUrl: profile.baseUrl,
     apiKey,
-    referer: "https://github.com/hamidkazimov777-cmd/Magnetar-Web-UI",
+    referer: "https://github.com/hamidkazimov777-cmd/Magnetar_Code",
     title: "Magnetar Code",
   });
 

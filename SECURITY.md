@@ -64,5 +64,5 @@ your machine. Read what you are approving.
 ## Reporting a problem
 
 Open an issue at
-https://github.com/hamidkazimov777-cmd/Magnetar-Web-UI/issues, or, for
+https://github.com/hamidkazimov777-cmd/Magnetar_Code/issues, or, for
 something you would rather not post publicly, contact the author directly.

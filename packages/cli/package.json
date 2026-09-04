@@ -12,19 +12,19 @@
     "byok",
     "openai-compatible"
   ],
-  "homepage": "https://github.com/hamidkazimov777-cmd/Magnetar-Web-UI#readme",
-  "bugs": "https://github.com/hamidkazimov777-cmd/Magnetar-Web-UI/issues",
+  "homepage": "https://github.com/hamidkazimov777-cmd/Magnetar_Code#readme",
+  "bugs": "https://github.com/hamidkazimov777-cmd/Magnetar_Code/issues",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hamidkazimov777-cmd/Magnetar-Web-UI.git",
+    "url": "git+https://github.com/hamidkazimov777-cmd/Magnetar_Code.git",
     "directory": "packages/cli"
   },
   "license": "MIT",
   "author": "Hamid Kazimov",
   "type": "module",
   "bin": {
-    "magnetar": "./dist/cli.js",
-    "magnetar-code": "./dist/cli.js"
+    "magnetar": "dist/cli.js",
+    "magnetar-code": "dist/cli.js"
   },
   "files": [
     "dist",

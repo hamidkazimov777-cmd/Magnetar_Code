@@ -7,7 +7,7 @@
 Bring your own key. Any OpenAI-compatible endpoint: OpenRouter, TokenRouter,
 Kimi, OpenAI, DeepSeek, Together, LM Studio, Ollama.
 
-[![CI](https://github.com/hamidkazimov777-cmd/Magnetar-Web-UI/actions/workflows/ci.yml/badge.svg)](https://github.com/hamidkazimov777-cmd/Magnetar-Web-UI/actions/workflows/ci.yml)
+[![CI](https://github.com/hamidkazimov777-cmd/Magnetar_Code/actions/workflows/ci.yml/badge.svg)](https://github.com/hamidkazimov777-cmd/Magnetar_Code/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/magnetar-code?color=f5a623&label=npm)](https://www.npmjs.com/package/magnetar-code)
 [![node](https://img.shields.io/badge/node-%E2%89%A520.11-f5a623)](https://nodejs.org)
 [![license](https://img.shields.io/badge/license-MIT-f5a623)](LICENSE)
