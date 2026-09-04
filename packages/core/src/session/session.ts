@@ -98,6 +98,12 @@ export class Session {
     return metas.sort((a, b) => b.updatedAt - a.updatedAt || b.createdAt - a.createdAt);
   }
 
+  /** Sessions accumulate forever otherwise, and most of them are empty. */
+  static async remove(cwd: string, id: string, env?: NodeJS.ProcessEnv): Promise<void> {
+    const file = path.join(projectSessionsDir(cwd, env), `${id}.jsonl`);
+    await fs.rm(file, { force: true });
+  }
+
   history(): readonly Message[] {
     return this.messages;
   }

@@ -5,7 +5,10 @@
     "jsx": "react-jsx",
     "types": ["vite/client"],
     "noEmit": true,
-    "paths": { "@magnetar/core": ["../core/src/index.ts"] }
+    "paths": {
+      "@magnetar/core": ["../core/src/index.ts"],
+      "@magnetar/core/commands": ["../core/src/commands/registry.ts"]
+    }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts"]
 }

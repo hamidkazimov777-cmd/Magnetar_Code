@@ -55,7 +55,7 @@ npm run check              # format + lint + typecheck + test, должно бы
 - [ ] **E. 50 slash-команд.**
       Реестр в `core`, два вида: `kind: "action"` и `kind: "prompt"`
       (промпт-макросы: `/review /security /explain /refactor /simplify /docs
-      /fix /plan /test /commit`). `/btw <текст>` пишет факт в память, не
+  /fix /plan /test /commit`). `/btw <текст>` пишет факт в память, не
       дёргая модель. Палитра фильтрует по группам, показывает 8 строк.
       Команд-заглушек быть не должно.
 

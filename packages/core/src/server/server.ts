@@ -152,6 +152,16 @@ export async function startDaemon(deps: DaemonDeps): Promise<Daemon> {
         return json(res, 200, body);
       }
 
+      case "DELETE /api/session": {
+        const id = url.searchParams.get("id");
+        if (!id) return json(res, 400, { error: "id is required" });
+        // Deleting the session you are in would leave the run writing to a
+        // file nobody can open; start a fresh one instead.
+        if (id === session.meta.id) session = await Session.create(deps.cwd, model);
+        await Session.remove(deps.cwd, id);
+        return json(res, 200, { ok: true });
+      }
+
       case "GET /api/memory":
         return json(res, 200, await readMemory(deps.cwd));
 

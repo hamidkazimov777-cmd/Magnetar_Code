@@ -78,19 +78,7 @@ export function Stream({ entries, streaming }: Props): React.ReactElement {
               {entry.text}
             </div>
           );
-        return (
-          <div key={entry.id} className="tool" data-error={entry.isError ? "true" : "false"}>
-            <div className="tool-head">
-              <span className="tool-name">{entry.name}</span>
-              <span className="tool-arg">{entry.summary}</span>
-              {entry.running ? <span className="spacer notice">running…</span> : null}
-            </div>
-            {entry.diff ? <Diff patch={entry.diff} /> : null}
-            {!entry.diff && entry.output ? (
-              <div className="tool-body">{entry.output.slice(0, 4000)}</div>
-            ) : null}
-          </div>
-        );
+        return <ToolCard key={entry.id} entry={entry} />;
       })}
 
       {streaming ? (
@@ -99,6 +87,39 @@ export function Stream({ entries, streaming }: Props): React.ReactElement {
         </div>
       ) : null}
       <div ref={bottom} />
+    </div>
+  );
+}
+
+/** Tool output is collapsed by default: a run that lists a large directory or
+ *  tails a build log would otherwise push the conversation off the screen.
+ *  Diffs stay open — looking at them is the point — but inside their own
+ *  scroll box. */
+function ToolCard({ entry }: { entry: Extract<Entry, { kind: "tool" }> }): React.ReactElement {
+  const [open, setOpen] = React.useState(false);
+  const lines = entry.output ? entry.output.split("\n").length : 0;
+
+  return (
+    <div className="tool" data-error={entry.isError ? "true" : "false"}>
+      <button
+        className="tool-head"
+        onClick={() => setOpen((current) => !current)}
+        disabled={!entry.output}
+      >
+        <span className="tool-name">{entry.name}</span>
+        <span className="tool-arg">{entry.summary}</span>
+        <span className="spacer notice">
+          {entry.running
+            ? "running…"
+            : entry.output
+              ? `${open ? "▾" : "▸"} ${lines} ${lines === 1 ? "line" : "lines"}`
+              : ""}
+        </span>
+      </button>
+      {entry.diff ? <Diff patch={entry.diff} /> : null}
+      {open && entry.output ? (
+        <div className="tool-body">{entry.output.slice(0, 20000)}</div>
+      ) : null}
     </div>
   );
 }

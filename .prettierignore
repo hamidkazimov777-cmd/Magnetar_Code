@@ -4,3 +4,7 @@ dist
 package-lock.json
 packages/web/next-env.d.ts
 packages/web/src/components/ui
+
+# Prettier reformats this file differently on every pass (nested lists in
+# a checklist); the content is prose, so leave it alone.
+docs/NEXT.md

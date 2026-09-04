@@ -215,6 +215,28 @@ textarea:focus-visible,
   border-left-color: var(--accent);
   background: var(--panel-2);
 }
+.row-wrap {
+  display: flex;
+  align-items: stretch;
+}
+.row-wrap .row {
+  flex: 1;
+  min-width: 0;
+}
+.row-delete {
+  background: none;
+  border: none;
+  color: transparent;
+  padding: 0 calc(var(--unit) * 2);
+}
+.row-wrap:hover .row-delete {
+  color: var(--faint);
+}
+.row-delete:hover {
+  color: var(--err) !important;
+  border: none !important;
+}
+
 .row small {
   display: block;
   color: var(--faint);
@@ -254,6 +276,12 @@ textarea:focus-visible,
   box-shadow: var(--shadow);
 }
 .tool-head {
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 2px solid var(--line);
+  text-align: left;
+  cursor: pointer;
   display: flex;
   gap: calc(var(--unit) * 2);
   align-items: baseline;
@@ -276,7 +304,7 @@ textarea:focus-visible,
   padding: var(--unit) calc(var(--unit) * 2);
   color: var(--dim);
   white-space: pre-wrap;
-  max-height: 220px;
+  max-height: 320px;
   overflow: auto;
   font-size: 12px;
 }
@@ -289,6 +317,7 @@ textarea:focus-visible,
 
 .diff {
   margin: 0;
+  max-height: 420px;
   padding: var(--unit) calc(var(--unit) * 2);
   overflow-x: auto;
   font-size: 12px;
@@ -349,6 +378,7 @@ textarea:focus-visible,
 /* ── composer ─────────────────────────────────────────────────────────────── */
 
 .composer {
+  position: relative;
   border-top: 2px solid var(--line);
   background: var(--panel);
   padding: calc(var(--unit) * 2);
@@ -482,4 +512,45 @@ textarea:focus-visible,
   color: var(--faint);
   padding: calc(var(--unit) * 4);
   text-align: center;
+}
+
+/* ── composer: suggestions, attach, drop ──────────────────────────────────── */
+
+.composer[data-dropping="true"] {
+  outline: 2px dashed var(--accent);
+  outline-offset: -4px;
+}
+
+.suggestions {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  background: var(--panel);
+  border: 2px solid var(--line-bright);
+  box-shadow: var(--shadow);
+  max-height: 240px;
+  overflow-y: auto;
+}
+.suggestions .row {
+  white-space: nowrap;
+}
+.suggestions .row small {
+  display: inline;
+  margin-left: calc(var(--unit) * 2);
+}
+
+.clip {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding: 0 calc(var(--unit) * 2);
+  border: 2px solid var(--line-bright);
+  color: var(--dim);
+  cursor: pointer;
+  user-select: none;
+}
+.clip:hover {
+  color: var(--accent);
+  border-color: var(--accent);
 }

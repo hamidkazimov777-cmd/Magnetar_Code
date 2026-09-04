@@ -36,6 +36,8 @@ export const api = {
   files: (path: string) => request<FileEntry[]>(`files?path=${encodeURIComponent(path)}`),
   file: (path: string) =>
     request<{ path: string; content: string }>(`file?path=${encodeURIComponent(path)}`),
+  deleteSession: (id: string) =>
+    request<{ ok: true }>(`session?id=${encodeURIComponent(id)}`, { method: "DELETE" }),
   memory: () => request<MemoryFile[]>("memory"),
   writeMemory: (file: string, content: string) =>
     request<MemoryFile[]>("memory", { method: "POST", body: JSON.stringify({ file, content }) }),

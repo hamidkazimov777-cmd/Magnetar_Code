@@ -6,8 +6,10 @@ import type {
   StreamMessage,
   TodoItem,
 } from "@magnetar/core";
+import { promptFor } from "@magnetar/core/commands";
 import { api, openStream } from "../lib/client.js";
 import { Stream, type Entry, type NewEntry } from "./Stream.js";
+import { Composer } from "./Composer.js";
 import { Approval } from "./Approval.js";
 import { Sessions } from "./Sessions.js";
 import { Files } from "./Files.js";
@@ -33,7 +35,6 @@ export function Monitor(): React.ReactElement {
   const [cost, setCost] = React.useState(0);
   const [step, setStep] = React.useState(0);
   const [todos, setTodos] = React.useState<readonly TodoItem[]>([]);
-  const [draft, setDraft] = React.useState("");
   const [panel, setPanel] = React.useState<Panel>("files");
   const [filesKey, setFilesKey] = React.useState(0);
 
@@ -157,16 +158,44 @@ export function Monitor(): React.ReactElement {
     });
   }, [add, refresh]);
 
-  const send = async () => {
-    const text = draft.trim();
+  const send = async (text: string) => {
     if (!text || busy) return;
-    setDraft("");
     add({ kind: "user", text });
     setBusy(true);
     await api.chat(text).catch((error: Error) => {
       setBusy(false);
       add({ kind: "error", text: error.message });
     });
+  };
+
+  /** The monitor handles the commands that make sense here and hands the rest
+   *  to the model as a prompt; the terminal owns the ones that need a TTY. */
+  const runCommand = async (name: string, argument: string) => {
+    const macro = promptFor(name);
+    if (macro) return send(argument ? `${macro}\n\n${argument}` : macro);
+    switch (name) {
+      case "/new":
+        await api.newSession();
+        return loadSession();
+      case "/clear":
+        return setEntries([]);
+      case "/sessions":
+        return refresh();
+      case "/memory":
+        return setPanel("memory");
+      case "/files":
+      case "/tree":
+        return setPanel("files");
+      case "/cost":
+        return add({ kind: "notice", text: `${state?.session.costUsd.toFixed(4) ?? 0} USD` });
+      case "/web":
+        return add({ kind: "notice", text: "you are looking at it" });
+      default:
+        return add({
+          kind: "notice",
+          text: `${name} runs in the terminal — this view follows along`,
+        });
+    }
   };
 
   if (failure) {
@@ -234,14 +263,17 @@ export function Monitor(): React.ReactElement {
             activeId={state?.session.id ?? ""}
             onOpen={(sessionId) => void loadSession(sessionId)}
             onNew={() => void api.newSession().then(() => loadSession())}
+            onDelete={(sessionId) =>
+              void api.deleteSession(sessionId).then(() => loadSession(undefined))
+            }
           />
           <Todos items={todos} />
         </div>
 
         <div className="col-center">
           <Stream entries={entries} streaming={streaming} />
-          <div className="composer">
-            {approval ? (
+          {approval ? (
+            <div className="composer">
               <Approval
                 request={approval}
                 onAnswer={(decision) => {
@@ -249,29 +281,15 @@ export function Monitor(): React.ReactElement {
                   void api.approve(approval.id, decision);
                 }}
               />
-            ) : (
-              <>
-                <textarea
-                  value={draft}
-                  placeholder={busy ? "working…" : "ask, or leave it to the terminal"}
-                  onChange={(event) => setDraft(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" && !event.shiftKey) {
-                      event.preventDefault();
-                      void send();
-                    }
-                  }}
-                />
-                {busy ? (
-                  <button onClick={() => void api.cancel()}>stop</button>
-                ) : (
-                  <button onClick={() => void send()} disabled={!draft.trim()}>
-                    send
-                  </button>
-                )}
-              </>
-            )}
-          </div>
+            </div>
+          ) : (
+            <Composer
+              busy={busy}
+              onSend={(text) => void send(text)}
+              onCancel={() => void api.cancel()}
+              onCommand={(name, argument) => void runCommand(name, argument)}
+            />
+          )}
         </div>
 
         <div className="col col-right">

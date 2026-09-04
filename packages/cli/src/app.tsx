@@ -2,7 +2,11 @@ import React from "react";
 import { Box, Text, useApp, useInput, useStdout } from "ink";
 import {
   Session,
+  deleteFact,
+  deleteSecret,
   formatCost,
+  projectMemoryFile,
+  saveFact,
   runAgent,
   saveConfig,
   type AgentEvent,
@@ -17,7 +21,7 @@ import { Approval } from "./components/Approval.js";
 import { ProviderWizard } from "./provider.js";
 import { openBrowser, startMonitor } from "./web.js";
 import { Transcript, type Item } from "./components/Transcript.js";
-import { filterCommands, resolveCommand } from "./commands.js";
+import { filterCommands, promptFor, resolveCommand } from "./commands.js";
 import { renderMarkdown } from "./markdown.js";
 import { theme } from "./theme.js";
 import type { Runtime } from "./runtime.js";
@@ -196,6 +200,18 @@ export function App({
     [maxCostUsd, maxSteps, model, runtime, say, session],
   );
 
+  /** Several commands are just one tool call the user could have asked for.
+   *  Running the tool directly keeps them instant and free. */
+  const runTool = React.useCallback(
+    async (name: string, args: Record<string, unknown>) => {
+      const tool = runtime.tools.find((candidate) => candidate.name === name);
+      if (!tool) return `no such tool: ${name}`;
+      const result = await tool.run(args, { cwd: runtime.cwd });
+      return result.output;
+    },
+    [runtime],
+  );
+
   /* -------------------------------------------------------------- commands */
 
   const runSlash = React.useCallback(
@@ -206,6 +222,13 @@ export function App({
         return;
       }
       const { command, argument } = resolved;
+
+      // Macros are just very good prompts; expand and send.
+      if (command.kind === "prompt") {
+        const prompt = promptFor(command.name);
+        if (prompt) return send(argument ? `${prompt}\n\n${argument}` : prompt);
+      }
+
       switch (command.name) {
         case "/help":
           return say({ kind: "raw", text: actions.helpText() });
@@ -352,13 +375,122 @@ export function App({
           openBrowser(started.url);
           return say({ kind: "notice", text: `monitor: ${started.url}` });
         }
+        case "/btw":
+        case "/remember": {
+          if (!argument) return say({ kind: "error", text: `usage: ${command.name} <text>` });
+          const file = await saveFact(runtime.cwd, {
+            name: argument.split(/\s+/).slice(0, 4).join(" "),
+            description: argument.slice(0, 120),
+            type: command.name === "/btw" ? "project" : "preference",
+            body: argument,
+          });
+          return say({ kind: "notice", text: `remembered → ${file}` });
+        }
+        case "/status":
+          return say({ kind: "raw", text: await doctorText(runtime, model) });
+        case "/models": {
+          const list = runtime.profile.models ?? (await runtime.provider.listModels());
+          return say({ kind: "raw", text: list.join("\n") });
+        }
+        case "/rules":
+          return say({ kind: "notice", text: projectMemoryFile(runtime.cwd) });
+        case "/tree":
+          return say({
+            kind: "raw",
+            text: (await runTool("glob", { pattern: "**/*" })).slice(0, 4000),
+          });
+        case "/files":
+          return say({ kind: "raw", text: await runTool("list_dir", {}) });
+        case "/open":
+          if (!argument) return say({ kind: "error", text: "usage: /open <path>" });
+          return say({ kind: "raw", text: await runTool("read_file", { file_path: argument }) });
+        case "/search":
+          if (!argument) return say({ kind: "error", text: "usage: /search <pattern>" });
+          return say({ kind: "raw", text: await runTool("grep", { pattern: argument }) });
+        case "/run":
+          if (!argument) return say({ kind: "error", text: "usage: /run <command>" });
+          return say({ kind: "raw", text: await runTool("run_command", { command: argument }) });
+        case "/build":
+          return say({
+            kind: "raw",
+            text: await runTool("run_command", { command: "npm run build" }),
+          });
+        case "/lint":
+          return say({
+            kind: "raw",
+            text: await runTool("run_command", { command: "npm run lint" }),
+          });
+        case "/format":
+          return say({
+            kind: "raw",
+            text: await runTool("run_command", { command: "npm run format" }),
+          });
+        case "/branch":
+          return say({
+            kind: "raw",
+            text: await runTool("run_command", {
+              command: argument ? `git checkout ${argument}` : "git branch --show-current",
+            }),
+          });
+        case "/rename": {
+          if (!argument) return say({ kind: "error", text: "usage: /rename <title>" });
+          session.meta.title = argument;
+          await session.append({ role: "user", content: `[session renamed to "${argument}"]` });
+          return say({ kind: "notice", text: `renamed to ${argument}` });
+        }
+        case "/fork": {
+          const copy = await Session.create(runtime.cwd, model);
+          await copy.replaceHistory([...session.history()]);
+          setSession(copy);
+          return say({ kind: "notice", text: `forked into ${copy.meta.id}` });
+        }
+        case "/logout":
+          await deleteSecret(runtime.profile.id);
+          return say({ kind: "notice", text: `key for ${runtime.profile.name} deleted` });
+        case "/usage":
+          return say({
+            kind: "notice",
+            text: `${tokens} tokens · ${formatCost(cost)} this session`,
+          });
+        case "/limits":
+          return say({
+            kind: "notice",
+            text: `max steps ${maxSteps}${maxCostUsd ? ` · budget $${maxCostUsd}` : ""}`,
+          });
+        case "/drop":
+          return say({
+            kind: "notice",
+            text: "attachments live in the transcript; use /compact to drop old context",
+          });
+        case "/temperature":
+          return say({
+            kind: "notice",
+            text: "temperature is fixed at the provider default for now",
+          });
+        case "/forget":
+          if (!argument) return say({ kind: "error", text: "usage: /forget <name>" });
+          await deleteFact(runtime.cwd, argument);
+          return say({ kind: "notice", text: `forgot ${argument}` });
         case "/doctor":
           return say({ kind: "raw", text: await doctorText(runtime, model) });
         default:
           return say({ kind: "notice", text: `${command.name} is not wired up yet` });
       }
     },
-    [exit, model, runtime, say, send, session],
+    [
+      cost,
+      exit,
+      maxCostUsd,
+      maxSteps,
+      model,
+      runTool,
+      runtime,
+      say,
+      send,
+      session,
+      tokens,
+      version,
+    ],
   );
 
   const submit = React.useCallback(

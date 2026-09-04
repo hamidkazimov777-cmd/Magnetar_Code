@@ -40,6 +40,15 @@ export {
   type PermissionRules,
 } from "./permissions/permissions.js";
 export { Session, type SessionMeta } from "./session/session.js";
+export {
+  COMMANDS,
+  PROMPTS,
+  filterCommands,
+  promptFor,
+  resolveCommand,
+  type CommandGroup,
+  type SlashCommand,
+} from "./commands/registry.js";
 
 export {
   runAgent,
