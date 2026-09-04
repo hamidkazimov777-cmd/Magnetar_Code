@@ -112,6 +112,39 @@ export const grep: Tool = {
   },
 };
 
+/** Prose still gets indexed — a README often names the thing you are looking
+ *  for — but it loses to source when both match. */
+const PROSE = /\.(md|mdx|txt|rst|adoc)$/i;
+
+/** An import line answers no question the searcher asked. Neither does a blank
+ *  line or a closing brace. */
+function isMeaningful(line: string): boolean {
+  const trimmed = line.trim();
+  if (trimmed.length < 3) return false;
+  if (/^(import|export \*|from|require\()/.test(trimmed)) return false;
+  if (/^[)\]},;]/.test(trimmed)) return false;
+  return true;
+}
+
+/** What a file is, in one line: its first declaration if it has one, else the
+ *  first line that says something. */
+function firstMeaningful(info: {
+  header: string;
+  symbols: { name: string; line: number; context: string }[];
+}): { line: number; symbol: string; context: string } | null {
+  const declared = info.symbols[0];
+  if (declared) {
+    return { line: declared.line, symbol: declared.name, context: declared.context };
+  }
+  const lines = info.header.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    if (isMeaningful(lines[i]!)) {
+      return { line: i + 1, symbol: "", context: lines[i]!.trim().slice(0, 100) };
+    }
+  }
+  return null;
+}
+
 export const find_code: Tool = {
   name: "find_code",
   description:
@@ -146,6 +179,10 @@ export const find_code: Tool = {
     const lowerQuery = query.toLowerCase();
     const queryTerms = lowerQuery.split(/[^a-z0-9]+/).filter(Boolean);
 
+    /** The tool is called find_code. Documentation that mentions a symbol is
+     *  worth showing, but never above the file that defines it. */
+    const weight = (file: string) => (PROSE.test(file) ? 0.4 : 1);
+
     for (const [file, info] of Object.entries(index.files)) {
       if (ctx.signal?.aborted) break;
       const lowerPath = file.toLowerCase();
@@ -164,6 +201,7 @@ export const find_code: Tool = {
           score = 30;
         }
 
+        score *= weight(file);
         if (score > fileBestScore) {
           fileBestScore = score;
           fileBestHit = {
@@ -181,30 +219,40 @@ export const find_code: Tool = {
           lowerPath.includes(lowerQuery) ||
           (queryTerms.length > 0 && queryTerms.every((t) => lowerPath.includes(t)))
         ) {
-          fileBestScore = 20;
+          // Matching on the path tells the model nothing it did not already
+          // know, so show what the file actually declares.
+          const first = firstMeaningful(info);
+          fileBestScore = 20 * weight(file);
           fileBestHit = {
             path: file,
-            line: 1,
-            symbol: "",
-            context: info.header.split("\n")[0]?.trim().slice(0, 100) || "",
-            score: 20,
+            line: first?.line ?? 0,
+            symbol: first?.symbol ?? "",
+            context: first?.context ?? "",
+            score: fileBestScore,
           };
         } else if (
           info.header.toLowerCase().includes(lowerQuery) ||
           (queryTerms.length > 0 && queryTerms.every((t) => info.header.toLowerCase().includes(t)))
         ) {
-          fileBestScore = 10;
+          const matched = info.header
+            .split("\n")
+            .map((line, offset) => ({ line, offset }))
+            .find(
+              ({ line }) =>
+                isMeaningful(line) &&
+                (line.toLowerCase().includes(lowerQuery) ||
+                  queryTerms.some((term) => line.toLowerCase().includes(term))),
+            );
+          const first = matched ?? null;
+          fileBestScore = 10 * weight(file);
           fileBestHit = {
             path: file,
-            line: 1,
+            line: first ? first.offset + 1 : (firstMeaningful(info)?.line ?? 0),
             symbol: "",
-            context:
-              info.header
-                .split("\n")
-                .find((l) => queryTerms.some((t) => l.toLowerCase().includes(t)))
-                ?.trim()
-                .slice(0, 100) || "",
-            score: 10,
+            context: first
+              ? first.line.trim().slice(0, 100)
+              : (firstMeaningful(info)?.context ?? ""),
+            score: fileBestScore,
           };
         }
       }
@@ -260,7 +308,12 @@ export const find_code: Tool = {
     if (finalHits.length === 0) return { output: "No matches found." };
 
     const output = finalHits
-      .map((h) => `${h.path}:${h.line}  ${h.symbol ? h.symbol + "  — " : ""}${h.context}`)
+      .map((hit) => {
+        const where = hit.line > 0 ? `${hit.path}:${hit.line}` : hit.path;
+        const what = hit.symbol ? `  ${hit.symbol}` : "";
+        const why = hit.context ? `  — ${hit.context}` : "";
+        return `${where}${what}${why}`;
+      })
       .join("\n");
     return { output: truncate(output) };
   },

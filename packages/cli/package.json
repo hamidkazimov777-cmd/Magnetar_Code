@@ -1,6 +1,6 @@
 {
   "name": "magnetar-code",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Magnetar Code \u2014 a terminal AI coding agent with a local web monitor. Bring your own key: any OpenAI-compatible endpoint.",
   "keywords": [
     "ai",

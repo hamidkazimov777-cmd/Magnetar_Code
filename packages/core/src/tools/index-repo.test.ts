@@ -4,6 +4,7 @@ import path from "node:path";
 import os from "node:os";
 import { buildIndex } from "./index-repo.js";
 import { find_code } from "./search.js";
+import type { ToolContext } from "./types.js";
 
 describe("index-repo and find_code", () => {
   let tmpDir: string;
@@ -137,5 +138,58 @@ describe("index-repo and find_code", () => {
     ctrl.abort();
     const res = await find_code.run({ query: "a" }, { cwd: tmpDir, signal: ctrl.signal });
     expect(res.output).toBe("Aborted.");
+  });
+});
+
+describe("find_code output", () => {
+  let root: string;
+  let ctx: ToolContext;
+
+  beforeEach(async () => {
+    root = await fs.mkdtemp(path.join(os.tmpdir(), "magnetar-find-"));
+    ctx = { cwd: root };
+    await fs.mkdir(path.join(root, "src"), { recursive: true });
+    await fs.writeFile(
+      path.join(root, "src", "scheduler.ts"),
+      [
+        'import { thing } from "./thing.js";',
+        "",
+        "export function scheduleTask(name: string) {",
+        "  return name;",
+        "}",
+      ].join("\n"),
+    );
+    await fs.writeFile(
+      path.join(root, "README.md"),
+      "# Docs\n\nThe scheduler runs scheduleTask on a timer.\n",
+    );
+  });
+  afterEach(async () => {
+    await fs.rm(root, { recursive: true, force: true });
+  });
+
+  it("names the symbol and the line where it is declared", async () => {
+    const result = await find_code.run({ query: "scheduleTask" }, ctx);
+    // The point of the tool is to say what a file declares and where — a path
+    // the caller already typed plus its first import answers nothing.
+    expect(result.output).toContain("src/scheduler.ts:3");
+    expect(result.output).toContain("scheduleTask");
+    expect(result.output).not.toContain("import { thing }");
+  });
+
+  it("puts the code above the documentation that mentions it", async () => {
+    const result = await find_code.run({ query: "scheduleTask" }, ctx);
+    const lines = result.output.split("\n");
+    const code = lines.findIndex((line) => line.includes("scheduler.ts"));
+    const docs = lines.findIndex((line) => line.includes("README.md"));
+    expect(code).toBeGreaterThanOrEqual(0);
+    if (docs >= 0) expect(code).toBeLessThan(docs);
+  });
+
+  it("never points at an import line for a path match", async () => {
+    const result = await find_code.run({ query: "scheduler" }, ctx);
+    const first = result.output.split("\n")[0]!;
+    expect(first).toContain("scheduler.ts");
+    expect(first).not.toMatch(/:1\s/);
   });
 });
