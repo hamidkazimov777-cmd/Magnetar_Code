@@ -106,7 +106,7 @@ export function App({
   /* ---------------------------------------------------------------- agent */
 
   const send = React.useCallback(
-    async (prompt: string) => {
+    async (prompt: string, overrideModel?: string) => {
       const controller = new AbortController();
       abort.current = controller;
       setBusy("thinking");
@@ -164,7 +164,7 @@ export function App({
 
       const result = await runAgent(prompt, {
         provider: runtime.provider,
-        model,
+        model: overrideModel ?? model,
         tools: runtime.tools,
         permissions: runtime.permissions,
         session,
@@ -244,8 +244,16 @@ export function App({
           return say({ kind: "notice", text: actions.contextText({ ...runtime, session }) });
         case "/memory":
           return say({ kind: "raw", text: await actions.memoryText(runtime.cwd) });
-        case "/init":
+        case "/init": {
+          // Analysis is rare and worth doing properly, so it runs on the model
+          // chosen for memory rather than whatever is answering today.
+          const analyst = runtime.profile.memoryModel;
+          if (analyst && analyst !== model) {
+            say({ kind: "notice", text: `analysing with ${analyst}` });
+            return send(actions.initPrompt(), analyst);
+          }
           return send(actions.initPrompt());
+        }
         case "/diff":
           return say({ kind: "raw", text: await actions.diffText(runtime.cwd) });
         case "/undo":

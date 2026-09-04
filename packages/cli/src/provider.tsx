@@ -21,6 +21,7 @@ type Step =
   | { kind: "key" }
   | { kind: "loading" }
   | { kind: "model"; models: string[] }
+  | { kind: "memoryModel"; models: string[]; model: string }
   | { kind: "done"; text: string }
   | { kind: "failed"; text: string };
 
@@ -58,7 +59,7 @@ export function ProviderWizard({ onDone }: WizardProps): React.ReactElement {
   }, []);
 
   const save = React.useCallback(
-    async (model: string, models: string[]) => {
+    async (model: string, models: string[], memoryModel: string) => {
       const config = await loadConfig();
       const profile: ProviderProfile = {
         id: providerId(
@@ -69,6 +70,7 @@ export function ProviderWizard({ onDone }: WizardProps): React.ReactElement {
         baseUrl,
         model,
         models,
+        ...(memoryModel !== model ? { memoryModel } : {}),
         ...(keyless ? { keyless: true } : {}),
       };
       config.providers = [...config.providers.filter((p) => p.name !== name), profile];
@@ -177,7 +179,22 @@ export function ProviderWizard({ onDone }: WizardProps): React.ReactElement {
           title="Model"
           items={step.models.map((value) => ({ value, label: value }))}
           onCancel={() => onDone(null)}
-          onSelect={(value) => void save(value, step.models)}
+          onSelect={(value) => setStep({ kind: "memoryModel", models: step.models, model: value })}
+        />
+      );
+
+    case "memoryModel":
+      return (
+        <Picker
+          title="Model for analysing the project (used by /init)"
+          items={[
+            { value: step.model, label: `${step.model}`, hint: "same as above" },
+            ...step.models
+              .filter((value) => value !== step.model)
+              .map((value) => ({ value, label: value })),
+          ]}
+          onCancel={() => void save(step.model, step.models, step.model)}
+          onSelect={(value) => void save(step.model, step.models, value)}
         />
       );
 

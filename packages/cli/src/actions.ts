@@ -109,7 +109,26 @@ export async function exportSession(runtime: Runtime): Promise<string> {
   return `Wrote ${file}`;
 }
 
-const INIT_PROMPT = `Write a MAGNETAR.md for this repository: the instructions a new engineer would need on day one. Cover what the project is, how to build, run and test it, the layout of the important directories, and any conventions a contributor must follow. Inspect the repository first — read the package manifests, the README and the directory structure. Keep it under 60 lines, concrete, no filler. Write it with write_file to MAGNETAR.md.`;
+export const INIT_TOOLS = ["read_file", "list_dir", "glob", "grep", "write_file", "todo_write"];
+
+const INIT_PROMPT = `Analyse this repository and write its memory file.
+
+Inspect it first, do not guess: read the package manifests, the README, the
+build and test configuration, and walk the important directories. Use glob and
+grep rather than shelling out.
+
+Then write MAGNETAR.md at the project root with write_file. Cover, in this
+order: what the project is and what it is for; how to build, run and test it,
+with the exact commands; the layout of the directories that matter and what
+lives in each; the conventions a contributor must follow; and the traps — the
+things that look wrong but are deliberate, and the things that break if you
+touch them.
+
+Be concrete and specific to this repository. No filler, no generic advice, no
+restating what any reader could see from the file tree. Under 60 lines.
+
+When it is written, say in one sentence what you learned that surprised you.
+`;
 
 export function initPrompt(): string {
   return INIT_PROMPT;

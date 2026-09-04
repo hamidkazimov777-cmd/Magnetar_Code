@@ -8,6 +8,10 @@ export interface ProviderProfile {
   model: string;
   /** Last known model list, cached so `/model` opens instantly offline. */
   models?: string[];
+  /** Model used to analyse the project and write its memory. Runs rarely and
+   *  matters a lot, so it is worth pointing at a stronger model than the one
+   *  answering day to day. Defaults to `model`. */
+  memoryModel?: string;
   keyless?: boolean;
 }
 
