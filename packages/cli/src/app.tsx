@@ -98,10 +98,18 @@ export function App({
     setItems((current) => [...current, { ...item, id: id() }]);
   }, []);
 
+  // As many rows as the terminal can spare, so the whole list is reachable.
+  const paletteRows = Math.max(6, Math.min(16, (stdout?.rows ?? 24) - 8));
   const palette = React.useMemo(
     () => (draft.startsWith("/") && overlay.kind === "none" ? filterCommands(draft) : []),
     [draft, overlay.kind],
   );
+
+  const paletteStart = Math.max(
+    0,
+    Math.min(paletteIndex - Math.floor(paletteRows / 2), palette.length - paletteRows),
+  );
+  const paletteWindow = palette.slice(paletteStart, paletteStart + paletteRows);
 
   /* ---------------------------------------------------------------- agent */
 
@@ -600,12 +608,21 @@ export function App({
 
       {palette.length > 0 ? (
         <Box flexDirection="column" borderStyle="single" borderColor={theme.border} paddingX={1}>
-          {palette.slice(0, 8).map((command, index) => (
-            <Text key={command.name} color={index === paletteIndex ? theme.accent : theme.dim}>
-              {index === paletteIndex ? "▶ " : "  "}
-              {command.name.padEnd(13)} {command.description}
-            </Text>
-          ))}
+          {paletteWindow.map((command) => {
+            const index = palette.indexOf(command);
+            const active = index === paletteIndex;
+            return (
+              <Text key={command.name} color={active ? theme.accent : theme.dim}>
+                {active ? "▶ " : "  "}
+                {command.name.padEnd(13)} {command.description}
+                <Text color={theme.faint}> {command.group}</Text>
+              </Text>
+            );
+          })}
+          <Text color={theme.faint}>
+            {paletteIndex + 1}/{palette.length} · ↑↓ to move
+            {paletteStart + paletteRows < palette.length ? " · more below" : ""}
+          </Text>
         </Box>
       ) : null}
 
@@ -622,9 +639,11 @@ export function App({
             onArrow={(direction) => {
               if (palette.length === 0) return false;
               setPaletteIndex((current) => {
+                // Wraps around the whole list, not the visible window — the
+                // window scrolls to follow. Capping it at eight hid /provider
+                // and everything after it.
                 const next = direction === "up" ? current - 1 : current + 1;
-                const max = Math.min(palette.length, 8);
-                return (next + max) % max;
+                return (next + palette.length) % palette.length;
               });
               return true;
             }}

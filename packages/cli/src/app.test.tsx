@@ -15,6 +15,7 @@ import { App } from "./app.js";
 import type { Runtime } from "./runtime.js";
 
 const ENTER = "\r";
+const ARROW_UP = "\u001B[A";
 const tick = (ms = 60) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** A provider that answers from a script, so the app can be driven end to end
@@ -112,6 +113,19 @@ describe("App", () => {
     expect(lastFrame()).toContain("ctrl+c twice");
     // Nothing was sent to the provider.
     expect(runtime.session.history()).toHaveLength(0);
+  });
+
+  it("can reach every command in the palette, not just the first few", async () => {
+    const { stdin, lastFrame } = app();
+    await tick();
+    stdin.write("/");
+    await tick();
+    // The window used to be a hard eight rows, so /provider — the command a
+    // new user needs first — was unreachable.
+    expect(lastFrame()).toMatch(/1\/5\d/);
+    stdin.write(ARROW_UP);
+    await tick();
+    expect(lastFrame()).toContain("/exit");
   });
 
   it("opens the provider wizard in place instead of sending the user to a shell", async () => {

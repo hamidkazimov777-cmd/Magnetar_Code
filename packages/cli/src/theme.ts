@@ -6,6 +6,7 @@ export const theme = {
   accentDim: "#8a5f16",
   text: "#e8e8e8",
   dim: "#8a8a8a",
+  faint: "#5c5c5c",
   border: "#3a3a3a",
   ok: "#4ade80",
   err: "#ef4444",
