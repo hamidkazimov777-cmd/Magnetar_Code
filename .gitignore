@@ -9,4 +9,7 @@ out
 *.tsbuildinfo
 coverage
 
-.magnetar/
+# The search index is a local cache. Everything else under .magnetar/ —
+# remembered facts and approved commands — is meant to be committed and
+# reviewed in a diff.
+.magnetar/index.json
